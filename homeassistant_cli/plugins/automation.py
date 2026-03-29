@@ -64,6 +64,25 @@ def _load_json(source: str) -> Dict[str, Any]:
     )
 
 
+def _automation_config_id(ctx: Configuration, ref: str) -> str:
+    """Return the automation config id."""
+    item = _resolve(ctx, ref)
+    automation_id = item.get("attributes", {}).get("id")
+    if not automation_id:
+        _LOGGING.error("Automation %s does not expose a config id", ref)
+        sys.exit(1)
+
+    return cast(str, automation_id)
+
+
+def _automation_config(ctx: Configuration, ref: str) -> tuple[str, Dict[str, Any]]:
+    """Return the automation config id and stored payload."""
+    automation_id = _automation_config_id(ctx, ref)
+    return automation_id, api.get_collection_item_config(
+        ctx, "automation", automation_id
+    )
+
+
 def _call(ctx: Configuration, service: str, ref: str) -> None:
     """Call an automation service against a resolved ref."""
     entity_id = _resolve(ctx, ref)["entity_id"]
@@ -105,15 +124,10 @@ def find_cmd(ctx: Configuration, pattern: str) -> None:
 @click.argument("ref", required=True)
 @pass_context
 def show(ctx: Configuration, ref: str) -> None:
-    """Show stored automation configuration."""
+    """Show runtime state plus stored automation configuration."""
     ctx.auto_output("data")
     item = _resolve(ctx, ref)
-    automation_id = item.get("attributes", {}).get("id")
-    if not automation_id:
-        _LOGGING.error("Automation %s does not expose a config id", ref)
-        sys.exit(1)
-
-    payload = api.get_collection_item_config(ctx, "automation", automation_id)
+    _, payload = _automation_config(ctx, ref)
     payload = {
         "entity_id": item["entity_id"],
         "state": item["state"],
@@ -132,21 +146,69 @@ def show(ctx: Configuration, ref: str) -> None:
     )
 
 
+@cli.command("export")
+@click.argument("ref", required=True)
+@pass_context
+def export(ctx: Configuration, ref: str) -> None:
+    """Export the update-safe stored automation configuration."""
+    ctx.auto_output("data")
+    _, payload = _automation_config(ctx, ref)
+    ctx.echo(
+        raw_format_output(
+            ctx.output,
+            payload,
+            ctx.yaml(),
+            no_headers=ctx.no_headers,
+            table_format=ctx.table_format,
+            sort_by=ctx.sort_by,
+        )
+    )
+
+
 @cli.command("update")
 @click.argument("ref", required=True)
-@click.option("--json", required=True, help="JSON payload or '-' for stdin.")
+@click.option(
+    "--json",
+    required=True,
+    help="Full JSON payload matching `automation export`, or '-' for stdin.",
+)
 @pass_context
 def update(ctx: Configuration, ref: str, json: str) -> None:
     """Update stored automation configuration."""
     ctx.auto_output("data")
-    item = _resolve(ctx, ref)
-    automation_id = item.get("attributes", {}).get("id")
-    if not automation_id:
-        _LOGGING.error("Automation %s does not expose a config id", ref)
-        sys.exit(1)
-
+    automation_id = _automation_config_id(ctx, ref)
     result = api.update_collection_item_config(
-        ctx, "automation", cast(str, automation_id), _load_json(json)
+        ctx, "automation", automation_id, _load_json(json)
+    )
+    ctx.echo(
+        raw_format_output(
+            ctx.output,
+            result,
+            ctx.yaml(),
+            no_headers=ctx.no_headers,
+            table_format=ctx.table_format,
+            sort_by=ctx.sort_by,
+        )
+    )
+
+
+@cli.command("patch")
+@click.argument("ref", required=True)
+@click.option(
+    "--json",
+    required=True,
+    help="Inline JSON merge patch to apply on top of `automation export` output.",
+)
+@pass_context
+def patch(ctx: Configuration, ref: str, json: str) -> None:
+    """Patch stored automation configuration with an inline JSON merge patch."""
+    ctx.auto_output("data")
+    automation_id, payload = _automation_config(ctx, ref)
+    result = api.update_collection_item_config(
+        ctx,
+        "automation",
+        automation_id,
+        collection.merge_patch(payload, _load_json(json)),
     )
     ctx.echo(
         raw_format_output(

@@ -62,6 +62,24 @@ def test_script_show_uses_slug() -> None:
             get_config.assert_called_once_with(mock.ANY, "script", "alpha")
 
 
+def test_script_export_returns_stored_payload() -> None:
+    """Export should return only the stored script config."""
+    with mock.patch("homeassistant_cli.remote.get_states", return_value=SCRIPTS):
+        with mock.patch(
+            "homeassistant_cli.remote.get_collection_item_config",
+            return_value={"alias": "Alpha", "sequence": []},
+        ):
+            runner = CliRunner()
+            result = runner.invoke(
+                cli.cli,
+                ["--output=json", "script", "export", "Alpha"],
+                catch_exceptions=False,
+            )
+            assert result.exit_code == 0
+            payload = json.loads(result.output)
+            assert payload == {"alias": "Alpha", "sequence": []}
+
+
 def test_script_update_uses_slug() -> None:
     """Update should target the script slug endpoint."""
     with mock.patch("homeassistant_cli.remote.get_states", return_value=SCRIPTS):
@@ -89,6 +107,47 @@ def test_script_update_uses_slug() -> None:
                 "alpha",
                 {"alias": "Updated Alpha"},
             )
+
+
+def test_script_patch_merges_stored_payload() -> None:
+    """Patch should merge onto the stored script config."""
+    with mock.patch("homeassistant_cli.remote.get_states", return_value=SCRIPTS):
+        with mock.patch(
+            "homeassistant_cli.remote.get_collection_item_config",
+            return_value={
+                "alias": "Alpha",
+                "mode": "single",
+                "fields": {"room": "bedroom", "scene": "night"},
+            },
+        ):
+            with mock.patch(
+                "homeassistant_cli.remote.update_collection_item_config",
+                return_value={"result": "ok"},
+            ) as update_config:
+                runner = CliRunner()
+                result = runner.invoke(
+                    cli.cli,
+                    [
+                        "--output=json",
+                        "script",
+                        "patch",
+                        "script.alpha",
+                        "--json",
+                        '{"mode":"queued","fields":{"scene":"evening"}}',
+                    ],
+                    catch_exceptions=False,
+                )
+                assert result.exit_code == 0
+                update_config.assert_called_once_with(
+                    mock.ANY,
+                    "script",
+                    "alpha",
+                    {
+                        "alias": "Alpha",
+                        "mode": "queued",
+                        "fields": {"room": "bedroom", "scene": "evening"},
+                    },
+                )
 
 
 def test_script_run_passes_arguments() -> None:

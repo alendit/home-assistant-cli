@@ -86,6 +86,24 @@ def test_automation_show_by_id() -> None:
             get_config.assert_called_once()
 
 
+def test_automation_export_returns_stored_payload() -> None:
+    """Export should return the stored config shape without runtime fields."""
+    with mock.patch("homeassistant_cli.remote.get_states", return_value=AUTOMATIONS):
+        with mock.patch(
+            "homeassistant_cli.remote.get_collection_item_config",
+            return_value={"id": "auto-1", "alias": "Alpha", "mode": "single"},
+        ):
+            runner = CliRunner()
+            result = runner.invoke(
+                cli.cli,
+                ["--output=json", "automation", "export", "automation.alpha"],
+                catch_exceptions=False,
+            )
+            assert result.exit_code == 0
+            payload = json.loads(result.output)
+            assert payload == {"id": "auto-1", "alias": "Alpha", "mode": "single"}
+
+
 def test_automation_update_by_alias() -> None:
     """Update should resolve by alias and use the storage id."""
     with mock.patch("homeassistant_cli.remote.get_states", return_value=AUTOMATIONS):
@@ -113,6 +131,49 @@ def test_automation_update_by_alias() -> None:
                 "auto-1",
                 {"alias": "Updated Alpha"},
             )
+
+
+def test_automation_patch_merges_stored_payload() -> None:
+    """Patch should merge onto the stored config before updating."""
+    with mock.patch("homeassistant_cli.remote.get_states", return_value=AUTOMATIONS):
+        with mock.patch(
+            "homeassistant_cli.remote.get_collection_item_config",
+            return_value={
+                "id": "auto-1",
+                "alias": "Alpha",
+                "mode": "single",
+                "metadata": {"enabled": True, "source": "ui"},
+            },
+        ):
+            with mock.patch(
+                "homeassistant_cli.remote.update_collection_item_config",
+                return_value={"result": "ok"},
+            ) as update_config:
+                runner = CliRunner()
+                result = runner.invoke(
+                    cli.cli,
+                    [
+                        "--output=json",
+                        "automation",
+                        "patch",
+                        "automation.alpha",
+                        "--json",
+                        '{"mode":"restart","metadata":{"source":"edited"}}',
+                    ],
+                    catch_exceptions=False,
+                )
+                assert result.exit_code == 0
+                update_config.assert_called_once_with(
+                    mock.ANY,
+                    "automation",
+                    "auto-1",
+                    {
+                        "id": "auto-1",
+                        "alias": "Alpha",
+                        "mode": "restart",
+                        "metadata": {"enabled": True, "source": "edited"},
+                    },
+                )
 
 
 def test_automation_trigger() -> None:

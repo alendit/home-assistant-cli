@@ -1,7 +1,7 @@
 """Helpers for domain-oriented collection commands."""
 
 import re
-from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, cast
 
 from homeassistant_cli.config import Configuration
 import homeassistant_cli.remote as api
@@ -71,3 +71,23 @@ def resolve_item(
 def entity_slug(entity_id: str) -> str:
     """Return the part after the entity domain."""
     return entity_id.split(".", 1)[1]
+
+
+def merge_patch(base: Dict[str, Any], patch: Dict[str, Any]) -> Dict[str, Any]:
+    """Apply a JSON Merge Patch-style update to a dictionary."""
+    result = dict(base)
+
+    for key, value in patch.items():
+        if value is None:
+            result.pop(key, None)
+            continue
+
+        if isinstance(value, dict) and isinstance(result.get(key), dict):
+            result[key] = merge_patch(
+                cast(Dict[str, Any], result[key]), cast(Dict[str, Any], value)
+            )
+            continue
+
+        result[key] = value
+
+    return result

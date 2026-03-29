@@ -62,6 +62,18 @@ def _load_json(source: str) -> Dict[str, Any]:
     )
 
 
+def _script_slug(ctx: Configuration, ref: str) -> str:
+    """Return the script slug."""
+    item = _resolve(ctx, ref)
+    return collection.entity_slug(item["entity_id"])
+
+
+def _script_config(ctx: Configuration, ref: str) -> tuple[str, Dict[str, Any]]:
+    """Return the script slug and stored payload."""
+    slug = _script_slug(ctx, ref)
+    return slug, api.get_collection_item_config(ctx, "script", slug)
+
+
 @cli.command("list")
 @click.argument("scriptfilter", default=".*", required=False)
 @pass_context
@@ -94,14 +106,10 @@ def find_cmd(ctx: Configuration, pattern: str) -> None:
 @click.argument("ref", required=True)
 @pass_context
 def show(ctx: Configuration, ref: str) -> None:
-    """Show stored script configuration."""
+    """Show runtime state plus stored script configuration."""
     ctx.auto_output("data")
     item = _resolve(ctx, ref)
-    payload = api.get_collection_item_config(
-        ctx,
-        "script",
-        collection.entity_slug(item["entity_id"]),
-    )
+    _, payload = _script_config(ctx, ref)
     payload = {
         "entity_id": item["entity_id"],
         "state": item["state"],
@@ -120,19 +128,72 @@ def show(ctx: Configuration, ref: str) -> None:
     )
 
 
+@cli.command("export")
+@click.argument("ref", required=True)
+@pass_context
+def export(ctx: Configuration, ref: str) -> None:
+    """Export the update-safe stored script configuration."""
+    ctx.auto_output("data")
+    _, payload = _script_config(ctx, ref)
+    ctx.echo(
+        raw_format_output(
+            ctx.output,
+            payload,
+            ctx.yaml(),
+            no_headers=ctx.no_headers,
+            table_format=ctx.table_format,
+            sort_by=ctx.sort_by,
+        )
+    )
+
+
 @cli.command("update")
 @click.argument("ref", required=True)
-@click.option("--json", required=True, help="JSON payload or '-' for stdin.")
+@click.option(
+    "--json",
+    required=True,
+    help="Full JSON payload matching `script export`, or '-' for stdin.",
+)
 @pass_context
 def update(ctx: Configuration, ref: str, json: str) -> None:
     """Update stored script configuration."""
     ctx.auto_output("data")
-    item = _resolve(ctx, ref)
+    slug = _script_slug(ctx, ref)
     result = api.update_collection_item_config(
         ctx,
         "script",
-        collection.entity_slug(item["entity_id"]),
+        slug,
         _load_json(json),
+    )
+    ctx.echo(
+        raw_format_output(
+            ctx.output,
+            result,
+            ctx.yaml(),
+            no_headers=ctx.no_headers,
+            table_format=ctx.table_format,
+            sort_by=ctx.sort_by,
+        )
+    )
+
+
+@cli.command("patch")
+@click.argument("ref", required=True)
+@click.option(
+    "--json",
+    required=True,
+    help="Inline JSON merge patch to apply on top of `script export` output.",
+)
+@pass_context
+def patch(ctx: Configuration, ref: str, json: str) -> None:
+    """Patch stored script configuration with an inline JSON merge patch."""
+    ctx.auto_output("data")
+    slug, payload = _script_config(ctx, ref)
+    result = api.update_collection_item_config(
+        ctx,
+        "script",
+        slug,
+        collection.merge_patch(payload, _load_json(json)),
     )
     ctx.echo(
         raw_format_output(
