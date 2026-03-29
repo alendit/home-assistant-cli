@@ -356,8 +356,10 @@ def get_info(ctx: Configuration) -> Dict[str, Any]:
     """Get basic info about the Home Assistant instance."""
     try:
         config = get_config(ctx)
-    except (HomeAssistantCliError, ValueError):
-        raise HomeAssistantCliError("Unexpected error retrieving information")
+    except ValueError as ex:
+        raise HomeAssistantCliError(
+            f"Unexpected error retrieving information: {ex}"
+        )
 
     return {
         'base_url': config.get('external_url')

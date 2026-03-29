@@ -34,6 +34,12 @@ class _ZeroconfListener:
         """Add service."""
         self.services[name] = _zeroconf.get_service_info(_type, name)
 
+    def update_service(
+        self, _zeroconf: zeroconf.Zeroconf, _type: str, name: str
+    ) -> None:
+        """Update service details when Zeroconf notifies about changes."""
+        self.services[name] = _zeroconf.get_service_info(_type, name)
+
 
 def _locate_ha() -> Optional[str]:
     """Locate the Home Assistant instance."""

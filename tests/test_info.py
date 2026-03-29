@@ -29,7 +29,11 @@ def test_info_without_server_running() -> None:
     )
     assert result.exit_code == 1
     assert isinstance(result.exception, HomeAssistantCliError)
-    assert str(result.exception) == "Unexpected error retrieving information"
+    assert (
+        str(result.exception)
+        == "Unexpected error getting configuration: "
+        "Error connecting to http://donotexist.inf/api/config"
+    )
 
 
 def test_info_json() -> None:
@@ -43,7 +47,9 @@ def test_info_json() -> None:
 
         runner = CliRunner()
         result = runner.invoke(
-            cli.cli, ['--output=json', 'info'], catch_exceptions=False
+            cli.cli,
+            ['--server', 'http://localhost:8123', '--output=json', 'info'],
+            catch_exceptions=False,
         )
         assert result.exit_code == 0
         assert [VALID_INFO] == json.loads(result.output)
@@ -60,9 +66,16 @@ def test_info_unauth() -> None:
 
         runner = CliRunner()
         result = runner.invoke(
-            cli.cli, ['--output=json', 'info'], catch_exceptions=True
+            cli.cli,
+            ['--server', 'http://localhost:8123', '--output=json', 'info'],
+            catch_exceptions=True,
         )
         assert result.exit_code != 0
+        assert isinstance(result.exception, HomeAssistantCliError)
+        assert (
+            str(result.exception)
+            == "Error while getting all configuration: {}"
+        )
 
 
 def test_info_yaml() -> None:
@@ -76,7 +89,9 @@ def test_info_yaml() -> None:
 
         runner = CliRunner()
         result = runner.invoke(
-            cli.cli, ['--output=yaml', 'info'], catch_exceptions=False
+            cli.cli,
+            ['--server', 'http://localhost:8123', '--output=yaml', 'info'],
+            catch_exceptions=False,
         )
         assert result.exit_code == 0
         assert [VALID_INFO] == yaml.loadyaml(yaml.yaml(), result.output)

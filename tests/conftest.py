@@ -21,6 +21,13 @@ FIXTURES_PATH = Path(__file__).parent / 'fixtures'
 logcore.basic_config()
 
 
+@pytest.fixture(autouse=True)
+def clear_home_assistant_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep tests independent from the developer's shell configuration."""
+    for name in ("HASS_SERVER", "HASS_TOKEN", "HASSIO_TOKEN", "HASS_PASSWORD"):
+        monkeypatch.delenv(name, raising=False)
+
+
 def generate_fixture(content: str):
     """Generate the individual fixtures."""
     pass  # pylint: disable=unnecessary-pass
