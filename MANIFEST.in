@@ -1,4 +1,4 @@
-include README.rst
+include README.md
 include LICENSE.md
 graft homeassistant_cli
 graft tests

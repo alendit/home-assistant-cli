@@ -2,7 +2,7 @@
 name = "homeassistant-cli"
 dynamic = ["version"]
 description = "Command-line tool for Home Assistant."
-readme = "README.rst"
+readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE.md"]
 authors = [{ name = "The Home Assistant CLI Authors", email = "fabian@affolter-engineering.ch" }]
