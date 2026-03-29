@@ -100,3 +100,6 @@ README.html
 pip-wheel-metadata
 .xprocess
 results.xml
+
+# Local agent instructions
+AGENTS.md
