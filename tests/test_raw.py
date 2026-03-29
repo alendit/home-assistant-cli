@@ -31,6 +31,26 @@ def test_raw_get() -> None:
         assert data['message'] == 'success'
 
 
+def test_raw_get_without_api_prefix() -> None:
+    """Test raw GET with a bare API method name."""
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            "http://localhost:8123/api/config",
+            json={"message": "success"},
+            status_code=200,
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.cli,
+            ["--output=json", "raw", "get", "config"],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data['message'] == 'success'
+
+
 def test_raw_post() -> None:
     """Test raw."""
     with requests_mock.Mocker() as mock:
@@ -44,6 +64,26 @@ def test_raw_post() -> None:
         result = runner.invoke(
             cli.cli,
             ["--output=json", "raw", "post", "/api/anything"],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data['message'] == 'success'
+
+
+def test_raw_post_without_api_prefix() -> None:
+    """Test raw POST with a bare API method name."""
+    with requests_mock.Mocker() as mock:
+        mock.post(
+            "http://localhost:8123/api/anything",
+            json={"message": "success"},
+            status_code=200,
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.cli,
+            ["--output=json", "raw", "post", "anything"],
             catch_exceptions=False,
         )
         assert result.exit_code == 0

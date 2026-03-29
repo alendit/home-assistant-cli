@@ -35,6 +35,8 @@ When operating in those environments:
    `if printenv HASS_TOKEN >/dev/null; then echo HASS_TOKEN_SET; else echo HASS_TOKEN_UNSET; fi`
 4. Inline non-secret values such as the resolved server or SSH target only when
    approval rules require literal arguments.
+5. If `uv run` itself needs approval, prefer a persisted rule for the narrow
+   prefix `["uv", "run", "hass-cli"]` instead of broader `uv` access.
 
 Example:
 
@@ -75,6 +77,25 @@ uv run hass-cli service call automation.trigger --arguments entity_id=automation
 uv run hass-cli config full
 uv run hass-cli info
 ```
+
+Live automation inspection:
+
+```bash
+uv run hass-cli -o json state list automation
+uv run hass-cli -o json entity list | rg automation
+uv run hass-cli state get automation.name
+```
+
+Raw API inspection:
+
+```bash
+# `raw get config` is normalized to `/api/config`
+uv run hass-cli -o json raw get config
+uv run hass-cli -o json raw get /api/config
+uv run hass-cli -o json raw ws config/device_registry/list
+```
+
+Avoid `raw get /config` unless you intentionally want a non-API frontend route.
 
 Host-level Home Assistant CLI over SSH:
 
@@ -199,8 +220,12 @@ Look for:
 1. Use `uv run hass-cli` from this repo by default.
 2. Never print the token value; let tools read `HASS_TOKEN` directly.
 3. Inline non-secret values when approval rules reject `$VAR`.
-4. Run `ha core check` before disruptive operations.
-5. Prefer reload over restart when possible.
-6. Manually trigger automations after deployment.
-7. Check logs after every meaningful change.
-8. Verify the resulting state instead of assuming success.
+4. Prefer approving `["uv", "run", "hass-cli"]` over broader `uv` prefixes.
+5. Start live automation discovery with `state list automation` and `entity list`
+   before reaching for raw config endpoints.
+6. For raw REST calls, prefer `raw get config` or `raw get /api/config`.
+7. Run `ha core check` before disruptive operations.
+8. Prefer reload over restart when possible.
+9. Manually trigger automations after deployment.
+10. Check logs after every meaningful change.
+11. Verify the resulting state instead of assuming success.

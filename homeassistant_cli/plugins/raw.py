@@ -40,14 +40,36 @@ def _report(ctx, cmd, method, response) -> None:
         )
 
 
+def _normalize_api_method(method: str) -> str:
+    """Normalize raw REST methods to the Home Assistant API namespace.
+
+    Accept bare method names such as ``config`` and normalize them to
+    ``/api/config``. Absolute paths are preserved to keep the raw command
+    usable for advanced cases outside the default API namespace.
+    """
+    if method.startswith("/api/"):
+        return method
+
+    if method.startswith("api/"):
+        return f"/{method}"
+
+    if method.startswith("/"):
+        return method
+
+    return f"/api/{method}"
+
+
 @cli.command()
 @click.argument(
     'method', shell_complete=autocompletion.api_methods  # type: ignore
 )
 @pass_context
 def get(ctx: Configuration, method):
-    """Do a GET request against api/<method>."""
-    response = api.restapi(ctx, 'get', method)
+    """Do a GET request against /api/<method>.
+
+    METHOD accepts `config`, `api/config`, or `/api/config`.
+    """
+    response = api.restapi(ctx, 'get', _normalize_api_method(method))
 
     _report(ctx, "GET", method, response)
 
@@ -59,7 +81,10 @@ def get(ctx: Configuration, method):
 @click.option('--json')
 @pass_context
 def post(ctx: Configuration, method, json):
-    """Do a POST request against api/<method>."""
+    """Do a POST request against /api/<method>.
+
+    METHOD accepts `config`, `api/config`, or `/api/config`.
+    """
     if json:
         data = json_.loads(
             json if json != "-" else click.get_text_stream('stdin').read()
@@ -67,7 +92,7 @@ def post(ctx: Configuration, method, json):
     else:
         data = {}
 
-    response = api.restapi(ctx, 'post', method, data)
+    response = api.restapi(ctx, 'post', _normalize_api_method(method), data)
 
     _report(ctx, "GET", method, response)
 

@@ -11,7 +11,6 @@ import enum
 import json
 import logging
 from typing import Any, Callable, Dict, List, Optional, cast
-import urllib.parse
 from urllib.parse import urlencode
 
 import aiohttp
@@ -71,7 +70,8 @@ def restapi(
     if ctx.password:
         headers["x-ha-access"] = ctx.password
 
-    url = urllib.parse.urljoin(resolve_server(ctx) + path, "")
+    normalized_path = path if path.startswith("/") else f"/{path}"
+    url = f"{resolve_server(ctx).rstrip('/')}{normalized_path}"
 
     try:
         if method == METH_GET:
