@@ -25,22 +25,24 @@ published tool instead of the current checkout.
 ## Approval-Safe Command Execution
 
 Some agent approval systems do not auto-approve commands that contain shell
-variables such as `$HASS_SERVER`, `$HASS_TOKEN`, or `$HA_SSH_TARGET`.
+variables such as `$HASS_SERVER` or `$HA_SSH_TARGET`.
 
 When operating in those environments:
 
-1. Read the env var values first.
-2. Inline the resolved values into the command you execute.
-3. Avoid asking for approval on commands that still reference env vars.
+1. Do not run `printenv HASS_TOKEN` and do not echo the token back to the user.
+2. Let `hass-cli` or the wrapper script read `HASS_TOKEN` from the environment.
+3. If you need to confirm the token exists, only report presence:
+   `if printenv HASS_TOKEN >/dev/null; then echo HASS_TOKEN_SET; else echo HASS_TOKEN_UNSET; fi`
+4. Inline non-secret values such as the resolved server or SSH target only when
+   approval rules require literal arguments.
 
 Example:
 
 ```bash
 printenv HASS_SERVER
-printenv HASS_TOKEN
 
-# Then execute with literal values inlined:
-uv run hass-cli --server http://homeassistant.local:8123 --token eyJ... state list
+# Then execute with the server literal inlined, but let hass-cli read HASS_TOKEN:
+uv run hass-cli --server http://homeassistant.local:8123 state list
 ```
 
 Same rule for SSH:
@@ -52,16 +54,13 @@ printenv HA_SSH_TARGET
 ssh root@homeassistant.local "ha core check"
 ```
 
-Do not echo tokens back in prose unless necessary, but do inline them in the
-actual command when approval rules require literal arguments.
-
 ## Prerequisites
 
 Before starting, verify:
 
 1. Home Assistant is reachable over REST with a long-lived token.
 2. SSH access exists for host-level `ha` commands when needed.
-3. `HASS_SERVER` and `HASS_TOKEN` are set, or you have the literal values.
+3. `HASS_SERVER` and `HASS_TOKEN` are exported, or the script you call sets them.
 4. You are using this repo's `uv` environment.
 
 ## Core Commands
@@ -198,9 +197,10 @@ Look for:
 ## Best Practices
 
 1. Use `uv run hass-cli` from this repo by default.
-2. Read env vars first and inline values when approval rules reject `$VAR`.
-3. Run `ha core check` before disruptive operations.
-4. Prefer reload over restart when possible.
-5. Manually trigger automations after deployment.
-6. Check logs after every meaningful change.
-7. Verify the resulting state instead of assuming success.
+2. Never print the token value; let tools read `HASS_TOKEN` directly.
+3. Inline non-secret values when approval rules reject `$VAR`.
+4. Run `ha core check` before disruptive operations.
+5. Prefer reload over restart when possible.
+6. Manually trigger automations after deployment.
+7. Check logs after every meaningful change.
+8. Verify the resulting state instead of assuming success.
