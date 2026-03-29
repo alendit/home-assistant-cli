@@ -29,3 +29,45 @@ def test_get_entity_returns_result() -> None:
         return_value={"result": entity},
     ):
         assert remote.get_entity(cfg, "sensor.one") == entity
+
+
+def test_get_collection_item_config() -> None:
+    """Test reading a collection config item over REST."""
+    cfg = Configuration()
+    cfg.server = "http://localhost:8123"
+
+    with mock.patch('homeassistant_cli.remote.restapi') as restapi:
+        response = mock.Mock(status_code=200)
+        response.json.return_value = {"id": "auto-1", "alias": "Alpha"}
+        restapi.return_value = response
+
+        assert remote.get_collection_item_config(
+            cfg, "automation", "auto-1"
+        ) == {"id": "auto-1", "alias": "Alpha"}
+
+        restapi.assert_called_once_with(
+            cfg, remote.METH_GET, "/api/config/automation/config/auto-1"
+        )
+
+
+def test_update_collection_item_config() -> None:
+    """Test updating a collection config item over REST."""
+    cfg = Configuration()
+    cfg.server = "http://localhost:8123"
+    payload = {"alias": "Updated Alpha"}
+
+    with mock.patch('homeassistant_cli.remote.restapi') as restapi:
+        response = mock.Mock(status_code=200)
+        response.json.return_value = {"result": "ok"}
+        restapi.return_value = response
+
+        assert remote.update_collection_item_config(
+            cfg, "automation", "auto-1", payload
+        ) == {"result": "ok"}
+
+        restapi.assert_called_once_with(
+            cfg,
+            remote.METH_POST,
+            "/api/config/automation/config/auto-1",
+            payload,
+        )

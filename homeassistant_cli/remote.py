@@ -461,6 +461,49 @@ def get_config(ctx: Configuration) -> Dict[str, Any]:
     )
 
 
+def get_collection_item_config(
+    ctx: Configuration, collection: str, item_id: str
+) -> Dict[str, Any]:
+    """Return stored configuration for a collection item."""
+    path = f"/api/config/{collection}/config/{item_id}"
+    try:
+        req = restapi(ctx, METH_GET, path)
+    except HomeAssistantCliError as ex:
+        raise HomeAssistantCliError(
+            f"Unexpected error getting {collection} config: {ex}"
+        )
+
+    if req.status_code == 200:
+        return cast(Dict[str, Any], req.json())
+
+    raise HomeAssistantCliError(
+        f"Error while getting {collection} config: {req.text}"
+    )
+
+
+def update_collection_item_config(
+    ctx: Configuration,
+    collection: str,
+    item_id: str,
+    data: Dict[str, Any],
+) -> Dict[str, Any]:
+    """Update stored configuration for a collection item."""
+    path = f"/api/config/{collection}/config/{item_id}"
+    try:
+        req = restapi(ctx, METH_POST, path, data)
+    except HomeAssistantCliError as ex:
+        raise HomeAssistantCliError(
+            f"Unexpected error updating {collection} config: {ex}"
+        )
+
+    if req.status_code == 200:
+        return cast(Dict[str, Any], req.json())
+
+    raise HomeAssistantCliError(
+        f"Error while updating {collection} config: {req.text}"
+    )
+
+
 def get_state(ctx: Configuration, entity_id: str) -> Optional[Dict[str, Any]]:
     """Get entity state. If ok, return dictionary with state.
 

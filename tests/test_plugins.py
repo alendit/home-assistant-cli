@@ -7,6 +7,7 @@ import pytest
 from homeassistant_cli.cli import HomeAssistantCli, cli
 
 DFEAULT_PLUGINS = [
+    'automation',
     'completion',
     'config',
     'discover',
@@ -51,6 +52,7 @@ def test_commands_match_expected(defaultplugins_sorted) -> None:
 @pytest.mark.parametrize(
     "plugin",
     [
+        'automation',
         'service',
         'state',
         'system',
