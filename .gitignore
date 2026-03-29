@@ -103,3 +103,5 @@ results.xml
 
 # Local agent instructions
 AGENTS.md
+.agents
+agr.toml
