@@ -4,6 +4,7 @@ Basic API to access remote instance of Home Assistant.
 If a connection error occurs while communicating with the API a
 HomeAssistantCliError will be raised.
 """
+
 import asyncio
 import collections
 from datetime import datetime
@@ -23,10 +24,10 @@ import homeassistant_cli.hassconst as hass
 _LOGGER = logging.getLogger(__name__)
 
 # Copied from aiohttp.hdrs
-CONTENT_TYPE = 'Content-Type'
-METH_DELETE = 'DELETE'
-METH_GET = 'GET'
-METH_POST = 'POST'
+CONTENT_TYPE = "Content-Type"
+METH_DELETE = "DELETE"
+METH_GET = "GET"
+METH_POST = "POST"
 
 
 class APIStatus(enum.Enum):
@@ -39,11 +40,14 @@ class APIStatus(enum.Enum):
 
     def __str__(self) -> str:
         """Return the state."""
-        return self.value  # type: ignore
+        return self.value
 
 
 def restapi(
-    ctx: Configuration, method: str, path: str, data: Optional[Dict] = None
+    ctx: Configuration,
+    method: str,
+    path: str,
+    data: Optional[Dict[str, Any]] = None,
 ) -> requests.Response:
     """Make a call to the Home Assistant REST API."""
     if data is None:
@@ -90,9 +94,9 @@ def restapi(
 
 def wsapi(
     ctx: Configuration,
-    frame: Dict,
-    callback: Optional[Callable[[Dict], Any]] = None,
-) -> Optional[Dict]:
+    frame: Dict[str, Any],
+    callback: Optional[Callable[[Dict[str, Any]], Any]] = None,
+) -> Optional[Dict[str, Any]]:
     """Make a call to Home Assistant using WS API.
 
     if callback provided will keep listening and call
@@ -100,7 +104,8 @@ def wsapi(
 
     If no callback return data returned.
     """
-    async def fetcher() -> Optional[Dict]:
+
+    async def fetcher() -> Optional[Dict[str, Any]]:
         async with aiohttp.ClientSession() as session:
             async with session.ws_connect(
                 resolve_server(ctx) + "/api/websocket",
@@ -108,7 +113,7 @@ def wsapi(
             ) as wsconn:
                 authed = False
                 request = dict(frame)
-                request['id'] = 1
+                request["id"] = 1
 
                 while not authed:
                     msg = await wsconn.receive()
@@ -119,21 +124,21 @@ def wsapi(
                     if msg.type != aiohttp.WSMsgType.TEXT:
                         continue
 
-                    mydata = json.loads(msg.data)  # type: Dict[str, Any]
+                    auth_data = cast(Dict[str, Any], json.loads(msg.data))
 
-                    if mydata['type'] == 'auth_required':
+                    if auth_data["type"] == "auth_required":
                         await wsconn.send_str(
                             json.dumps(
                                 {
-                                    'type': 'auth',
-                                    'access_token': ctx.token,
+                                    "type": "auth",
+                                    "access_token": ctx.token,
                                 }
                             )
                         )
-                    elif mydata['type'] == 'auth_ok':
+                    elif auth_data["type"] == "auth_ok":
                         authed = True
-                    elif mydata['type'] == 'auth_invalid':
-                        raise HomeAssistantCliError(mydata.get('message'))
+                    elif auth_data["type"] == "auth_invalid":
+                        raise HomeAssistantCliError(auth_data.get("message"))
 
                 await wsconn.send_str(json.dumps(request))
 
@@ -146,17 +151,17 @@ def wsapi(
                     if msg.type != aiohttp.WSMsgType.TEXT:
                         continue
 
-                    mydata = json.loads(msg.data)  # type: Dict[str, Any]
+                    response_data = cast(Dict[str, Any], json.loads(msg.data))
 
-                    if mydata['type'] == 'auth_invalid':
-                        raise HomeAssistantCliError(mydata.get('message'))
+                    if response_data["type"] == "auth_invalid":
+                        raise HomeAssistantCliError(response_data.get("message"))
 
                     if callback:
-                        callback(mydata)
+                        callback(response_data)
                         continue
 
-                    if mydata['type'] == 'result':
-                        return mydata
+                    if response_data["type"] == "result":
+                        return response_data
         return None
 
     return asyncio.run(fetcher())
@@ -183,48 +188,46 @@ class JSONEncoder(json.JSONEncoder):
 
 def get_areas(ctx: Configuration) -> List[Dict[str, Any]]:
     """Return all areas."""
-    frame = {'type': hass.WS_TYPE_AREA_REGISTRY_LIST}
+    frame = {"type": hass.WS_TYPE_AREA_REGISTRY_LIST}
 
-    response = cast(Optional[Dict[str, Any]], wsapi(ctx, frame))
+    response = wsapi(ctx, frame)
     if response is None:
         raise HomeAssistantCliError("No response returned from websocket API")
 
-    return cast(List[Dict[str, Any]], response['result'])
+    return cast(List[Dict[str, Any]], response["result"])
 
 
 def find_area(ctx: Configuration, id_or_name: str) -> Optional[Dict[str, str]]:
     """Find area first by id and if no match by name."""
     areas = get_areas(ctx)
 
-    area = next((x for x in areas if x['area_id'] == id_or_name), None)
+    area = next((x for x in areas if x["area_id"] == id_or_name), None)
     if not area:
-        area = next((x for x in areas if x['name'] == id_or_name), None)
+        area = next((x for x in areas if x["name"] == id_or_name), None)
 
     return area
 
 
 def create_area(ctx: Configuration, name: str) -> Dict[str, Any]:
     """Create area."""
-    frame = {'type': hass.WS_TYPE_AREA_REGISTRY_CREATE, 'name': name}
+    frame = {"type": hass.WS_TYPE_AREA_REGISTRY_CREATE, "name": name}
 
     return cast(Dict[str, Any], wsapi(ctx, frame))
 
 
 def delete_area(ctx: Configuration, area_id: str) -> Dict[str, Any]:
     """Delete area."""
-    frame = {'type': hass.WS_TYPE_AREA_REGISTRY_DELETE, 'area_id': area_id}
+    frame = {"type": hass.WS_TYPE_AREA_REGISTRY_DELETE, "area_id": area_id}
 
     return cast(Dict[str, Any], wsapi(ctx, frame))
 
 
-def rename_area(
-    ctx: Configuration, area_id: str, new_name: str
-) -> Dict[str, Any]:
+def rename_area(ctx: Configuration, area_id: str, new_name: str) -> Dict[str, Any]:
     """Rename area."""
     frame = {
-        'type': hass.WS_TYPE_AREA_REGISTRY_UPDATE,
-        'area_id': area_id,
-        'name': new_name,
+        "type": hass.WS_TYPE_AREA_REGISTRY_UPDATE,
+        "area_id": area_id,
+        "name": new_name,
     }
 
     return cast(Dict[str, Any], wsapi(ctx, frame))
@@ -238,39 +241,35 @@ def rename_entity(
 ) -> Dict[str, Any]:
     """Rename entity."""
     frame = {
-        'type': hass.WS_TYPE_ENTITY_REGISTRY_UPDATE,
-        'entity_id': entity_id,
+        "type": hass.WS_TYPE_ENTITY_REGISTRY_UPDATE,
+        "entity_id": entity_id,
     }
 
     if new_name:
-        frame['name'] = new_name
+        frame["name"] = new_name
     if new_id:
-        frame['new_entity_id'] = new_id
+        frame["new_entity_id"] = new_id
 
     return cast(Dict[str, Any], wsapi(ctx, frame))
 
 
-def rename_device(
-    ctx: Configuration, device_id: str, new_name: str
-) -> Dict[str, Any]:
+def rename_device(ctx: Configuration, device_id: str, new_name: str) -> Dict[str, Any]:
     """Rename device."""
     frame = {
-        'type': hass.WS_TYPE_DEVICE_REGISTRY_UPDATE,
-        'device_id': device_id,
-        'name_by_user': new_name,
+        "type": hass.WS_TYPE_DEVICE_REGISTRY_UPDATE,
+        "device_id": device_id,
+        "name_by_user": new_name,
     }
 
     return cast(Dict[str, Any], wsapi(ctx, frame))
 
 
-def assign_area(
-    ctx: Configuration, device_id: str, area_id: str
-) -> Dict[str, Any]:
+def assign_area(ctx: Configuration, device_id: str, area_id: str) -> Dict[str, Any]:
     """Assign area."""
     frame = {
-        'type': hass.WS_TYPE_DEVICE_REGISTRY_UPDATE,
-        'area_id': area_id,
-        'device_id': device_id,
+        "type": hass.WS_TYPE_DEVICE_REGISTRY_UPDATE,
+        "area_id": area_id,
+        "device_id": device_id,
     }
 
     return cast(Dict[str, Any], wsapi(ctx, frame))
@@ -281,9 +280,9 @@ def assign_entity_area(
 ) -> Dict[str, Any]:
     """Assign area to entity."""
     frame = {
-        'type': hass.WS_TYPE_ENTITY_REGISTRY_UPDATE,
-        'area_id': area_id,
-        'entity_id': entity_id,
+        "type": hass.WS_TYPE_ENTITY_REGISTRY_UPDATE,
+        "area_id": area_id,
+        "entity_id": entity_id,
     }
 
     return cast(Dict[str, Any], wsapi(ctx, frame))
@@ -291,48 +290,46 @@ def assign_entity_area(
 
 def get_health(ctx: Configuration) -> Dict[str, Any]:
     """Get system Health."""
-    frame = {'type': 'system_health/info'}
+    frame = {"type": "system_health/info"}
 
-    response = cast(Optional[Dict[str, Any]], wsapi(ctx, frame))
+    response = wsapi(ctx, frame)
     if response is None:
         raise HomeAssistantCliError("No response returned from websocket API")
 
-    return cast(Dict[str, Any], response['result'])
+    return cast(Dict[str, Any], response["result"])
 
 
 def get_devices(ctx: Configuration) -> List[Dict[str, Any]]:
     """Return all devices."""
-    frame = {'type': hass.WS_TYPE_DEVICE_REGISTRY_LIST}
+    frame = {"type": hass.WS_TYPE_DEVICE_REGISTRY_LIST}
 
-    response = cast(Optional[Dict[str, Any]], wsapi(ctx, frame))
+    response = wsapi(ctx, frame)
     if response is None:
         raise HomeAssistantCliError("No response returned from websocket API")
 
-    return cast(List[Dict[str, Any]], response['result'])
+    return cast(List[Dict[str, Any]], response["result"])
 
 
 def get_entities(ctx: Configuration) -> List[Dict[str, Any]]:
     """Return all entities."""
-    frame = {'type': hass.WS_TYPE_ENTITY_REGISTRY_LIST}
+    frame = {"type": hass.WS_TYPE_ENTITY_REGISTRY_LIST}
 
-    response = cast(Optional[Dict[str, Any]], wsapi(ctx, frame))
+    response = wsapi(ctx, frame)
     if response is None:
         raise HomeAssistantCliError("No response returned from websocket API")
 
-    return cast(List[Dict[str, Any]], response['result'])
+    return cast(List[Dict[str, Any]], response["result"])
 
 
-def get_entity(
-    ctx: Configuration, entity_id: str
-) -> Optional[Dict[str, Any]]:
+def get_entity(ctx: Configuration, entity_id: str) -> Optional[Dict[str, Any]]:
     """Return entity registry details."""
-    frame = {'type': hass.WS_TYPE_ENTITY_REGISTRY_GET, 'entity_id': entity_id}
+    frame = {"type": hass.WS_TYPE_ENTITY_REGISTRY_GET, "entity_id": entity_id}
 
-    response = cast(Optional[Dict[str, Any]], wsapi(ctx, frame))
+    response = wsapi(ctx, frame)
     if response is None:
         return None
 
-    return cast(Optional[Dict[str, Any]], response.get('result'))
+    return cast(Optional[Dict[str, Any]], response.get("result"))
 
 
 def validate_api(ctx: Configuration) -> APIStatus:
@@ -357,17 +354,15 @@ def get_info(ctx: Configuration) -> Dict[str, Any]:
     try:
         config = get_config(ctx)
     except ValueError as ex:
-        raise HomeAssistantCliError(
-            f"Unexpected error retrieving information: {ex}"
-        )
+        raise HomeAssistantCliError(f"Unexpected error retrieving information: {ex}")
 
     return {
-        'base_url': config.get('external_url')
-        or config.get('internal_url')
+        "base_url": config.get("external_url")
+        or config.get("internal_url")
         or resolve_server(ctx),
-        'location_name': config.get('location_name'),
-        'requires_api_password': False,
-        'version': config.get('version'),
+        "location_name": config.get("location_name"),
+        "requires_api_password": False,
+        "version": config.get("version"),
     }
 
 
@@ -386,10 +381,10 @@ def get_events(ctx: Configuration) -> Dict[str, Any]:
 
 def get_history(
     ctx: Configuration,
-    entities: Optional[List] = None,
+    entities: Optional[List[str]] = None,
     start_time: Optional[datetime] = None,
     end_time: Optional[datetime] = None,
-) -> List[Dict[str, Any]]:
+) -> List[List[Dict[str, Any]]]:
     """Return History."""
     try:
         if start_time:
@@ -412,7 +407,7 @@ def get_history(
         raise HomeAssistantCliError(f"Unexpected error getting history: {ex}")
 
     if req.status_code == 200:
-        return cast(List[Dict[str, Any]], req.json())
+        return cast(List[List[Dict[str, Any]]], req.json())
 
     raise HomeAssistantCliError(f"Error while getting all events: {req.text}")
 
@@ -437,9 +432,7 @@ def get_raw_error_log(ctx: Configuration) -> str:
         req = restapi(ctx, METH_GET, hass.URL_API_ERROR_LOG)
         req.raise_for_status()
     except HomeAssistantCliError as ex:
-        raise HomeAssistantCliError(
-            f"Unexpected error getting error log: {ex}"
-        )
+        raise HomeAssistantCliError(f"Unexpected error getting error log: {ex}")
 
     return req.text
 
@@ -449,16 +442,12 @@ def get_config(ctx: Configuration) -> Dict[str, Any]:
     try:
         req = restapi(ctx, METH_GET, hass.URL_API_CONFIG)
     except HomeAssistantCliError as ex:
-        raise HomeAssistantCliError(
-            f"Unexpected error getting configuration: {ex}"
-        )
+        raise HomeAssistantCliError(f"Unexpected error getting configuration: {ex}")
 
     if req.status_code == 200:
-        return cast(Dict[str, str], req.json())
+        return cast(Dict[str, Any], req.json())
 
-    raise HomeAssistantCliError(
-        f"Error while getting all configuration: {req.text}"
-    )
+    raise HomeAssistantCliError(f"Error while getting all configuration: {req.text}")
 
 
 def get_collection_item_config(
@@ -476,9 +465,7 @@ def get_collection_item_config(
     if req.status_code == 200:
         return cast(Dict[str, Any], req.json())
 
-    raise HomeAssistantCliError(
-        f"Error while getting {collection} config: {req.text}"
-    )
+    raise HomeAssistantCliError(f"Error while getting {collection} config: {req.text}")
 
 
 def update_collection_item_config(
@@ -499,9 +486,7 @@ def update_collection_item_config(
     if req.status_code == 200:
         return cast(Dict[str, Any], req.json())
 
-    raise HomeAssistantCliError(
-        f"Error while updating {collection} config: {req.text}"
-    )
+    raise HomeAssistantCliError(f"Error while updating {collection} config: {req.text}")
 
 
 def get_state(ctx: Configuration, entity_id: str) -> Optional[Dict[str, Any]]:
@@ -511,9 +496,7 @@ def get_state(ctx: Configuration, entity_id: str) -> Optional[Dict[str, Any]]:
     with details.
     """
     try:
-        req = restapi(
-            ctx, METH_GET, hass.URL_API_STATES_ENTITY.format(entity_id)
-        )
+        req = restapi(ctx, METH_GET, hass.URL_API_STATES_ENTITY.format(entity_id))
     except HomeAssistantCliError as ex:
         raise HomeAssistantCliError(f"Unexpected error getting state: {ex}")
 
@@ -522,9 +505,7 @@ def get_state(ctx: Configuration, entity_id: str) -> Optional[Dict[str, Any]]:
     if req.status_code == 404:
         return None
 
-    raise HomeAssistantCliError(
-        f"Error while getting Entity {entity_id}: {req.text}"
-    )
+    raise HomeAssistantCliError(f"Error while getting Entity {entity_id}: {req.text}")
 
 
 def remove_state(ctx: Configuration, entity_id: str) -> bool:
@@ -534,9 +515,7 @@ def remove_state(ctx: Configuration, entity_id: str) -> bool:
     Otherwise raise exception with details.
     """
     try:
-        req = restapi(
-            ctx, METH_DELETE, hass.URL_API_STATES_ENTITY.format(entity_id)
-        )
+        req = restapi(ctx, METH_DELETE, hass.URL_API_STATES_ENTITY.format(entity_id))
 
         if req.status_code == 200:
             return True
@@ -545,13 +524,11 @@ def remove_state(ctx: Configuration, entity_id: str) -> bool:
     except HomeAssistantCliError:
         raise HomeAssistantCliError("Unexpected error removing state")
 
-    raise HomeAssistantCliError(
-        f"Error removing state: {req.status_code} - {req.text}"
-    )
+    raise HomeAssistantCliError(f"Error removing state: {req.status_code} - {req.text}")
 
 
 def set_state(
-    ctx: Configuration, entity_id: str, data: Dict
+    ctx: Configuration, entity_id: str, data: Dict[str, Any]
 ) -> Dict[str, Any]:
     """Set/update state for entity id."""
     try:
@@ -560,9 +537,7 @@ def set_state(
         )
     except HomeAssistantCliError as exception:
         raise HomeAssistantCliError(
-            "Error updating state for entity {}: {}".format(
-                entity_id, exception
-            )
+            "Error updating state for entity {}: {}".format(entity_id, exception)
         )
 
     if req.status_code not in (200, 201):
@@ -574,7 +549,9 @@ def set_state(
     return cast(Dict[str, Any], req.json())
 
 
-def render_template(ctx: Configuration, template: str, variables: Dict) -> str:
+def render_template(
+    ctx: Configuration, template: str, variables: Dict[str, Any]
+) -> str:
     """Render template."""
     data = {"template": template, "variables": variables}
 
@@ -585,19 +562,18 @@ def render_template(ctx: Configuration, template: str, variables: Dict) -> str:
 
     if req.status_code not in (200, 201):
         raise HomeAssistantCliError(
-            "Error applying template: {} - {}".format(
-                req.status_code, req.text
-            )
+            "Error applying template: {} - {}".format(req.status_code, req.text)
         )
     return req.text
 
 
-def get_event_listeners(ctx: Configuration) -> Dict:
+def get_event_listeners(ctx: Configuration) -> Dict[str, Any]:
     """List of events that is being listened for."""
     try:
         req = restapi(ctx, METH_GET, hass.URL_API_EVENTS)
-
-        return req.json() if req.status_code == 200 else {}  # type: ignore
+        if req.status_code == 200:
+            return cast(Dict[str, Any], req.json())
+        return {}
 
     except (HomeAssistantCliError, ValueError):
         # ValueError if req.json() can't parse the json
@@ -616,9 +592,7 @@ def fire_event(
         )
 
         if req.status_code != 200:
-            _LOGGER.error(
-                "Error firing event: %d - %s", req.status_code, req.text
-            )
+            _LOGGER.error("Error firing event: %d - %s", req.status_code, req.text)
 
         return cast(Dict[str, Any], req.json())
 
@@ -630,7 +604,7 @@ def call_service(
     ctx: Configuration,
     domain: str,
     service: str,
-    service_data: Optional[Dict] = None,
+    service_data: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """Call a service."""
     try:
@@ -663,6 +637,4 @@ def get_services(
     if req.status_code == 200:
         return cast(List[Dict[str, Any]], req.json())
 
-    raise HomeAssistantCliError(
-        f"Error while getting all services: {req.text}"
-    )
+    raise HomeAssistantCliError(f"Error while getting all services: {req.text}")

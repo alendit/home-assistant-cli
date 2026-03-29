@@ -1,4 +1,5 @@
 """Tests for Home Assistant OS/Supervisor commands."""
+
 from unittest import mock
 
 from click.testing import CliRunner
@@ -14,7 +15,7 @@ def test_ha_info_uses_single_rest_call() -> None:
     response.json.return_value = {"data": {"status": "ok"}}
 
     with mock.patch(
-        'homeassistant_cli.remote.restapi',
+        "homeassistant_cli.remote.restapi",
         return_value=response,
     ) as restapi:
         runner = CliRunner()
@@ -41,7 +42,7 @@ def test_ha_update_uses_packaging_versions() -> None:
     }
 
     with mock.patch(
-        'homeassistant_cli.remote.restapi',
+        "homeassistant_cli.remote.restapi",
         return_value=response,
     ):
         runner = CliRunner()

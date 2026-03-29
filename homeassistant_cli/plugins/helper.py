@@ -1,4 +1,5 @@
 """Helper plugin for Home Assistant CLI (hass-cli)."""
+
 import logging
 import sys
 from typing import Any, Dict, List, Optional
@@ -13,42 +14,46 @@ from homeassistant_cli.helper import format_output, raw_format_output
 _LOGGING = logging.getLogger(__name__)
 
 HELPER_DOMAINS = (
-    'counter',
-    'input_boolean',
-    'input_button',
-    'input_datetime',
-    'input_number',
-    'input_select',
-    'input_text',
-    'timer',
+    "counter",
+    "input_boolean",
+    "input_button",
+    "input_datetime",
+    "input_number",
+    "input_select",
+    "input_text",
+    "timer",
 )
 
 COLS = [
-    ('TYPE', 'domain'),
-    ('ENTITY', 'entity_id'),
-    ('NAME', 'attributes.friendly_name'),
-    ('STATE', 'state'),
+    ("TYPE", "domain"),
+    ("ENTITY", "entity_id"),
+    ("NAME", "attributes.friendly_name"),
+    ("STATE", "state"),
 ]
 
 
-@click.group('helper')
+@click.group("helper")
 @pass_context
-def cli(ctx: Configuration):
+def cli(ctx: Configuration) -> None:
     """Discover helper entities from Home Assistant."""
     ctx.auto_output("table")
 
 
-def _helpers(ctx: Configuration, helper_type: Optional[str] = None) -> List[Dict[str, Any]]:
+def _helpers(
+    ctx: Configuration, helper_type: Optional[str] = None
+) -> List[Dict[str, Any]]:
     """Return helper entities from supported helper domains."""
     domains = [helper_type] if helper_type else list(HELPER_DOMAINS)
     result = []  # type: List[Dict[str, Any]]
     for domain in domains:
         for item in collection.get_domain_states(ctx, domain):
-            result.append({**item, 'domain': domain})
+            result.append({**item, "domain": domain})
     return result
 
 
-def _resolve(ctx: Configuration, ref: str, helper_type: Optional[str]) -> Dict[str, Any]:
+def _resolve(
+    ctx: Configuration, ref: str, helper_type: Optional[str]
+) -> Dict[str, Any]:
     """Resolve a helper ref."""
     try:
         item = collection.resolve_item(_helpers(ctx, helper_type), ref)
@@ -63,13 +68,11 @@ def _resolve(ctx: Configuration, ref: str, helper_type: Optional[str]) -> Dict[s
     return item
 
 
-@cli.command('list')
-@click.argument('helperfilter', default=".*", required=False)
-@click.option('--type', 'helper_type', type=click.Choice(HELPER_DOMAINS))
+@cli.command("list")
+@click.argument("helperfilter", default=".*", required=False)
+@click.option("--type", "helper_type", type=click.Choice(HELPER_DOMAINS))
 @pass_context
-def list_cmd(
-    ctx: Configuration, helperfilter: str, helper_type: Optional[str]
-) -> None:
+def list_cmd(ctx: Configuration, helperfilter: str, helper_type: Optional[str]) -> None:
     """List helpers."""
     ctx.auto_output("table")
     items = _helpers(ctx, helper_type)
@@ -79,9 +82,9 @@ def list_cmd(
     ctx.echo(format_output(ctx, result, columns=ctx.columns if ctx.columns else COLS))
 
 
-@cli.command('find')
-@click.argument('pattern', required=True)
-@click.option('--type', 'helper_type', type=click.Choice(HELPER_DOMAINS))
+@cli.command("find")
+@click.argument("pattern", required=True)
+@click.option("--type", "helper_type", type=click.Choice(HELPER_DOMAINS))
 @pass_context
 def find_cmd(ctx: Configuration, pattern: str, helper_type: Optional[str]) -> None:
     """Find helpers by regex."""
@@ -95,9 +98,9 @@ def find_cmd(ctx: Configuration, pattern: str, helper_type: Optional[str]) -> No
     )
 
 
-@cli.command('show')
-@click.argument('ref', required=True)
-@click.option('--type', 'helper_type', type=click.Choice(HELPER_DOMAINS))
+@cli.command("show")
+@click.argument("ref", required=True)
+@click.option("--type", "helper_type", type=click.Choice(HELPER_DOMAINS))
 @pass_context
 def show(ctx: Configuration, ref: str, helper_type: Optional[str]) -> None:
     """Show the current helper entity state."""

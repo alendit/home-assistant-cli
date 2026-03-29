@@ -1,4 +1,5 @@
 """Scene plugin for Home Assistant CLI (hass-cli)."""
+
 import logging
 import sys
 from typing import Any, Dict, List
@@ -14,22 +15,22 @@ import homeassistant_cli.remote as api
 _LOGGING = logging.getLogger(__name__)
 
 COLS = [
-    ('ENTITY', 'entity_id'),
-    ('NAME', 'attributes.friendly_name'),
-    ('STATE', 'state'),
+    ("ENTITY", "entity_id"),
+    ("NAME", "attributes.friendly_name"),
+    ("STATE", "state"),
 ]
 
 
-@click.group('scene')
+@click.group("scene")
 @pass_context
-def cli(ctx: Configuration):
+def cli(ctx: Configuration) -> None:
     """Work with scenes from Home Assistant."""
     ctx.auto_output("table")
 
 
 def _scenes(ctx: Configuration) -> List[Dict[str, Any]]:
     """Return scene states only."""
-    return collection.get_domain_states(ctx, 'scene')
+    return collection.get_domain_states(ctx, "scene")
 
 
 def _resolve(ctx: Configuration, ref: str) -> Dict[str, Any]:
@@ -47,8 +48,8 @@ def _resolve(ctx: Configuration, ref: str) -> Dict[str, Any]:
     return item
 
 
-@cli.command('list')
-@click.argument('scenefilter', default=".*", required=False)
+@cli.command("list")
+@click.argument("scenefilter", default=".*", required=False)
 @pass_context
 def list_cmd(ctx: Configuration, scenefilter: str) -> None:
     """List scenes."""
@@ -60,8 +61,8 @@ def list_cmd(ctx: Configuration, scenefilter: str) -> None:
     ctx.echo(format_output(ctx, result, columns=ctx.columns if ctx.columns else COLS))
 
 
-@cli.command('find')
-@click.argument('pattern', required=True)
+@cli.command("find")
+@click.argument("pattern", required=True)
 @pass_context
 def find_cmd(ctx: Configuration, pattern: str) -> None:
     """Find scenes by regex."""
@@ -75,8 +76,8 @@ def find_cmd(ctx: Configuration, pattern: str) -> None:
     )
 
 
-@cli.command('show')
-@click.argument('ref', required=True)
+@cli.command("show")
+@click.argument("ref", required=True)
 @pass_context
 def show(ctx: Configuration, ref: str) -> None:
     """Show the current scene entity state."""
@@ -94,15 +95,15 @@ def show(ctx: Configuration, ref: str) -> None:
     )
 
 
-@cli.command('activate')
-@click.argument('ref', required=True)
-@click.option('--transition', type=float, default=None)
+@cli.command("activate")
+@click.argument("ref", required=True)
+@click.option("--transition", type=float, default=None)
 @pass_context
-def activate(ctx: Configuration, ref: str, transition: float) -> None:
+def activate(ctx: Configuration, ref: str, transition: float | None) -> None:
     """Activate a scene."""
     ctx.auto_output("data")
     item = _resolve(ctx, ref)
-    data = {'entity_id': item['entity_id']}
+    data = {"entity_id": item["entity_id"]}
     if transition is not None:
-        data['transition'] = transition
-    ctx.echo(format_output(ctx, api.call_service(ctx, 'scene', 'turn_on', data)))
+        data["transition"] = transition
+    ctx.echo(format_output(ctx, api.call_service(ctx, "scene", "turn_on", data)))

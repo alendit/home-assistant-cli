@@ -1,4 +1,5 @@
 """Info plugin for Home Assistant CLI (hass-cli)."""
+
 import logging
 
 import click
@@ -11,9 +12,9 @@ import homeassistant_cli.remote as api
 _LOGGING = logging.getLogger(__name__)
 
 
-@click.command('info')
+@click.command("info")
 @pass_context
-def cli(ctx: Configuration):
+def cli(ctx: Configuration) -> None:
     """Get basic info from Home Assistant."""
     ctx.auto_output("table")
     cols = [

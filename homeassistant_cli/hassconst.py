@@ -3,6 +3,7 @@
 Copy of recent homeassistant.const to make hass-cli run
 without installing Home Assistant itself.
 """
+
 # Home Assistant WS constants
 
 # Websocket API
@@ -609,6 +610,7 @@ URL_API_ERROR_LOG = "/api/error_log"
 URL_API_LOG_OUT = "/api/log_out"
 URL_API_TEMPLATE = "/api/template"
 URL_API_HISTORY_PERIOD = "/api/history/period"
+URL_API_HISTORY = URL_API_HISTORY_PERIOD
 
 HTTP_OK = 200
 HTTP_CREATED = 201

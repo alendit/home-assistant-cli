@@ -1,11 +1,11 @@
 """Testing automation operations."""
+
 import json
 from unittest import mock
 
 from click.testing import CliRunner
 
 import homeassistant_cli.cli as cli
-
 
 AUTOMATIONS = [
     {
@@ -36,9 +36,7 @@ AUTOMATIONS = [
 
 def test_automation_list_filters_domain() -> None:
     """Only automation entities should be listed."""
-    with mock.patch(
-        'homeassistant_cli.remote.get_states', return_value=AUTOMATIONS
-    ):
+    with mock.patch("homeassistant_cli.remote.get_states", return_value=AUTOMATIONS):
         runner = CliRunner()
         result = runner.invoke(
             cli.cli,
@@ -48,15 +46,13 @@ def test_automation_list_filters_domain() -> None:
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert len(data) == 2
-        assert data[0]['entity_id'] == "automation.alpha"
-        assert data[1]['entity_id'] == "automation.beta"
+        assert data[0]["entity_id"] == "automation.alpha"
+        assert data[1]["entity_id"] == "automation.beta"
 
 
 def test_automation_find_matches_name() -> None:
     """Find should match friendly names."""
-    with mock.patch(
-        'homeassistant_cli.remote.get_states', return_value=AUTOMATIONS
-    ):
+    with mock.patch("homeassistant_cli.remote.get_states", return_value=AUTOMATIONS):
         runner = CliRunner()
         result = runner.invoke(
             cli.cli,
@@ -66,16 +62,14 @@ def test_automation_find_matches_name() -> None:
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert len(data) == 1
-        assert data[0]['entity_id'] == "automation.beta"
+        assert data[0]["entity_id"] == "automation.beta"
 
 
 def test_automation_show_by_id() -> None:
     """Show should resolve via automation config id."""
-    with mock.patch(
-        'homeassistant_cli.remote.get_states', return_value=AUTOMATIONS
-    ):
+    with mock.patch("homeassistant_cli.remote.get_states", return_value=AUTOMATIONS):
         with mock.patch(
-            'homeassistant_cli.remote.get_collection_item_config',
+            "homeassistant_cli.remote.get_collection_item_config",
             return_value={"id": "auto-1", "alias": "Alpha"},
         ) as get_config:
             runner = CliRunner()
@@ -86,19 +80,17 @@ def test_automation_show_by_id() -> None:
             )
             assert result.exit_code == 0
             payload = json.loads(result.output)
-            assert payload['id'] == "auto-1"
-            assert payload['entity_id'] == "automation.alpha"
-            assert payload['friendly_name'] == "Alpha"
+            assert payload["id"] == "auto-1"
+            assert payload["entity_id"] == "automation.alpha"
+            assert payload["friendly_name"] == "Alpha"
             get_config.assert_called_once()
 
 
 def test_automation_update_by_alias() -> None:
     """Update should resolve by alias and use the storage id."""
-    with mock.patch(
-        'homeassistant_cli.remote.get_states', return_value=AUTOMATIONS
-    ):
+    with mock.patch("homeassistant_cli.remote.get_states", return_value=AUTOMATIONS):
         with mock.patch(
-            'homeassistant_cli.remote.update_collection_item_config',
+            "homeassistant_cli.remote.update_collection_item_config",
             return_value={"result": "ok"},
         ) as update_config:
             runner = CliRunner()
@@ -117,19 +109,17 @@ def test_automation_update_by_alias() -> None:
             assert result.exit_code == 0
             update_config.assert_called_once_with(
                 mock.ANY,
-                'automation',
-                'auto-1',
+                "automation",
+                "auto-1",
                 {"alias": "Updated Alpha"},
             )
 
 
 def test_automation_trigger() -> None:
     """Trigger should call the automation service with the entity id."""
-    with mock.patch(
-        'homeassistant_cli.remote.get_states', return_value=AUTOMATIONS
-    ):
+    with mock.patch("homeassistant_cli.remote.get_states", return_value=AUTOMATIONS):
         with mock.patch(
-            'homeassistant_cli.remote.call_service',
+            "homeassistant_cli.remote.call_service",
             return_value=[{"entity_id": "automation.alpha", "state": "on"}],
         ) as call_service:
             runner = CliRunner()
@@ -141,7 +131,7 @@ def test_automation_trigger() -> None:
             assert result.exit_code == 0
             call_service.assert_called_once_with(
                 mock.ANY,
-                'automation',
-                'trigger',
-                {'entity_id': 'automation.alpha'},
+                "automation",
+                "trigger",
+                {"entity_id": "automation.alpha"},
             )

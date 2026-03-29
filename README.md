@@ -1,7 +1,7 @@
 # Home Assistant CLI
 
-[![PyPI version](https://img.shields.io/pypi/v/homeassistant-cli.svg)](https://pypi.org/project/homeassistant-cli/)
-[![License](https://img.shields.io/pypi/l/homeassistant-cli.svg)](LICENSE.md)
+[![CI](https://github.com/home-assistant-ecosystem/home-assistant-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/home-assistant-ecosystem/home-assistant-cli/actions/workflows/ci.yml)
+[![License](https://img.shields.io/github/license/home-assistant-ecosystem/home-assistant-cli)](LICENSE.md)
 
 `hass-cli` is a command-line client for Home Assistant. It can inspect runtime
 state, call services, work with registry objects such as devices and areas, and
@@ -12,24 +12,20 @@ YAML, tabular output, and shell completion.
 
 ## Installation
 
-`homeassistant-cli` supports Python 3.11 and newer.
-
-Install the latest published release with `uv`:
-
-```bash
-uv tool install homeassistant-cli
-```
+`homeassistant-cli` supports Python 3.11 and newer. The repository defaults to
+Python 3.14 for local development and CI.
 
 Install the current development branch directly from GitHub:
 
 ```bash
-uv tool install git+https://github.com/home-assistant-ecosystem/home-assistant-cli@dev
+uv tool install git+https://github.com/home-assistant-ecosystem/home-assistant-cli@main
 ```
 
-You can also install it into an existing Python environment:
+Run the local checkout with `uv`:
 
 ```bash
-python -m pip install homeassistant-cli
+uv sync
+uv run hass-cli --help
 ```
 
 Community packages are also available in several ecosystems, including Fedora,
@@ -198,13 +194,7 @@ eval "$(_HASS_CLI_COMPLETE=fish_source hass-cli)"   # fish
 
 ## Development
 
-Set up the repository:
-
-```bash
-./script/setup
-```
-
-Or with `uv`:
+Set up the repository with `uv`:
 
 ```bash
 uv sync

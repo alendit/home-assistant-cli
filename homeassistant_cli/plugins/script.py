@@ -1,8 +1,9 @@
 """Script plugin for Home Assistant CLI (hass-cli)."""
+
 import json as json_
 import logging
 import sys
-from typing import Any, Dict, List
+from typing import Any, Dict, List, cast
 
 import click
 
@@ -19,23 +20,23 @@ import homeassistant_cli.remote as api
 _LOGGING = logging.getLogger(__name__)
 
 COLS = [
-    ('ENTITY', 'entity_id'),
-    ('NAME', 'attributes.friendly_name'),
-    ('STATE', 'state'),
-    ('LAST_TRIGGERED', 'attributes.last_triggered'),
+    ("ENTITY", "entity_id"),
+    ("NAME", "attributes.friendly_name"),
+    ("STATE", "state"),
+    ("LAST_TRIGGERED", "attributes.last_triggered"),
 ]
 
 
-@click.group('script')
+@click.group("script")
 @pass_context
-def cli(ctx: Configuration):
+def cli(ctx: Configuration) -> None:
     """Work with scripts from Home Assistant."""
     ctx.auto_output("table")
 
 
 def _scripts(ctx: Configuration) -> List[Dict[str, Any]]:
     """Return script states only."""
-    return collection.get_domain_states(ctx, 'script')
+    return collection.get_domain_states(ctx, "script")
 
 
 def _resolve(ctx: Configuration, ref: str) -> Dict[str, Any]:
@@ -55,13 +56,14 @@ def _resolve(ctx: Configuration, ref: str) -> Dict[str, Any]:
 
 def _load_json(source: str) -> Dict[str, Any]:
     """Load JSON from option value or stdin."""
-    return json_.loads(
-        source if source != "-" else click.get_text_stream('stdin').read()
+    return cast(
+        Dict[str, Any],
+        json_.loads(source if source != "-" else click.get_text_stream("stdin").read()),
     )
 
 
-@cli.command('list')
-@click.argument('scriptfilter', default=".*", required=False)
+@cli.command("list")
+@click.argument("scriptfilter", default=".*", required=False)
 @pass_context
 def list_cmd(ctx: Configuration, scriptfilter: str) -> None:
     """List scripts."""
@@ -73,8 +75,8 @@ def list_cmd(ctx: Configuration, scriptfilter: str) -> None:
     ctx.echo(format_output(ctx, result, columns=ctx.columns if ctx.columns else COLS))
 
 
-@cli.command('find')
-@click.argument('pattern', required=True)
+@cli.command("find")
+@click.argument("pattern", required=True)
 @pass_context
 def find_cmd(ctx: Configuration, pattern: str) -> None:
     """Find scripts by regex."""
@@ -88,8 +90,8 @@ def find_cmd(ctx: Configuration, pattern: str) -> None:
     )
 
 
-@cli.command('show')
-@click.argument('ref', required=True)
+@cli.command("show")
+@click.argument("ref", required=True)
 @pass_context
 def show(ctx: Configuration, ref: str) -> None:
     """Show stored script configuration."""
@@ -97,13 +99,13 @@ def show(ctx: Configuration, ref: str) -> None:
     item = _resolve(ctx, ref)
     payload = api.get_collection_item_config(
         ctx,
-        'script',
-        collection.entity_slug(item['entity_id']),
+        "script",
+        collection.entity_slug(item["entity_id"]),
     )
     payload = {
-        'entity_id': item['entity_id'],
-        'state': item['state'],
-        'friendly_name': collection.get_item_name(item),
+        "entity_id": item["entity_id"],
+        "state": item["state"],
+        "friendly_name": collection.get_item_name(item),
         **payload,
     }
     ctx.echo(
@@ -118,9 +120,9 @@ def show(ctx: Configuration, ref: str) -> None:
     )
 
 
-@cli.command('update')
-@click.argument('ref', required=True)
-@click.option('--json', required=True, help="JSON payload or '-' for stdin.")
+@cli.command("update")
+@click.argument("ref", required=True)
+@click.option("--json", required=True, help="JSON payload or '-' for stdin.")
 @pass_context
 def update(ctx: Configuration, ref: str, json: str) -> None:
     """Update stored script configuration."""
@@ -128,8 +130,8 @@ def update(ctx: Configuration, ref: str, json: str) -> None:
     item = _resolve(ctx, ref)
     result = api.update_collection_item_config(
         ctx,
-        'script',
-        collection.entity_slug(item['entity_id']),
+        "script",
+        collection.entity_slug(item["entity_id"]),
         _load_json(json),
     )
     ctx.echo(
@@ -144,10 +146,10 @@ def update(ctx: Configuration, ref: str, json: str) -> None:
     )
 
 
-@cli.command('run')
-@click.argument('ref', required=True)
+@cli.command("run")
+@click.argument("ref", required=True)
 @click.option(
-    '--arguments', help="Comma separated key/value pairs to use as arguments."
+    "--arguments", help="Comma separated key/value pairs to use as arguments."
 )
 @pass_context
 def run(ctx: Configuration, ref: str, arguments: str) -> None:
@@ -155,12 +157,12 @@ def run(ctx: Configuration, ref: str, arguments: str) -> None:
     ctx.auto_output("data")
     item = _resolve(ctx, ref)
     data = to_attributes(arguments)
-    data['entity_id'] = item['entity_id']
-    ctx.echo(format_output(ctx, api.call_service(ctx, 'script', 'turn_on', data)))
+    data["entity_id"] = item["entity_id"]
+    ctx.echo(format_output(ctx, api.call_service(ctx, "script", "turn_on", data)))
 
 
-@cli.command('stop')
-@click.argument('ref', required=True)
+@cli.command("stop")
+@click.argument("ref", required=True)
 @pass_context
 def stop(ctx: Configuration, ref: str) -> None:
     """Stop a running script."""
@@ -171,9 +173,9 @@ def stop(ctx: Configuration, ref: str) -> None:
             ctx,
             api.call_service(
                 ctx,
-                'script',
-                'turn_off',
-                {'entity_id': item['entity_id']},
+                "script",
+                "turn_off",
+                {"entity_id": item["entity_id"]},
             ),
         )
     )

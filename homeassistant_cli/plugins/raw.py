@@ -1,9 +1,11 @@
 """Raw plugin for Home Assistant CLI (hass-cli)."""
+
 import json as json_
 import logging
-from typing import Any, Dict, List, cast  # noqa: F401
+from typing import Optional
 
 import click
+import requests
 
 import homeassistant_cli.autocompletion as autocompletion
 from homeassistant_cli.cli import pass_context
@@ -14,14 +16,16 @@ import homeassistant_cli.remote as api
 _LOGGING = logging.getLogger(__name__)
 
 
-@click.group('raw')
+@click.group("raw")
 @pass_context
-def cli(ctx: Configuration):
+def cli(ctx: Configuration) -> None:
     """Call the raw API (advanced)."""
     ctx.auto_output("data")
 
 
-def _report(ctx, cmd, method, response) -> None:
+def _report(
+    ctx: Configuration, cmd: str, method: str, response: requests.Response
+) -> None:
     """Create a report."""
     response.raise_for_status()
 
@@ -60,51 +64,45 @@ def _normalize_api_method(method: str) -> str:
 
 
 @cli.command()
-@click.argument(
-    'method', shell_complete=autocompletion.api_methods  # type: ignore
-)
+@click.argument("method", shell_complete=autocompletion.api_methods)
 @pass_context
-def get(ctx: Configuration, method):
+def get(ctx: Configuration, method: str) -> None:
     """Do a GET request against /api/<method>.
 
     METHOD accepts `config`, `api/config`, or `/api/config`.
     """
-    response = api.restapi(ctx, 'get', _normalize_api_method(method))
+    response = api.restapi(ctx, "get", _normalize_api_method(method))
 
     _report(ctx, "GET", method, response)
 
 
 @cli.command()
-@click.argument(
-    'method', shell_complete=autocompletion.api_methods  # type: ignore
-)
-@click.option('--json')
+@click.argument("method", shell_complete=autocompletion.api_methods)
+@click.option("--json")
 @pass_context
-def post(ctx: Configuration, method, json):
+def post(ctx: Configuration, method: str, json: Optional[str]) -> None:
     """Do a POST request against /api/<method>.
 
     METHOD accepts `config`, `api/config`, or `/api/config`.
     """
     if json:
         data = json_.loads(
-            json if json != "-" else click.get_text_stream('stdin').read()
+            json if json != "-" else click.get_text_stream("stdin").read()
         )
     else:
         data = {}
 
-    response = api.restapi(ctx, 'post', _normalize_api_method(method), data)
+    response = api.restapi(ctx, "post", _normalize_api_method(method), data)
 
     _report(ctx, "GET", method, response)
 
 
 @cli.command("ws")
-@click.argument(
-    'wstype', shell_complete=autocompletion.wsapi_methods  # type: ignore
-)
-@click.option('--json')
+@click.argument("wstype", shell_complete=autocompletion.wsapi_methods)
+@click.option("--json")
 @pass_context
-def websocket(ctx: Configuration, wstype, json):  # noqa: D301
-    """Send a websocket request against /api/websocket.
+def websocket(ctx: Configuration, wstype: str, json: Optional[str]) -> None:
+    r"""Send a websocket request against /api/websocket.
 
     WSTYPE is name of websocket methods.
 
@@ -114,14 +112,17 @@ def websocket(ctx: Configuration, wstype, json):  # noqa: D301
     """
     if json:
         data = json_.loads(
-            json if json != "-" else click.get_text_stream('stdin').read()
+            json if json != "-" else click.get_text_stream("stdin").read()
         )
     else:
         data = {}
 
-    frame = {'type': wstype}
+    frame = {"type": wstype}
     frame = {**frame, **data}  # merging data into frame
 
-    response = cast(List[Dict[str, Any]], api.wsapi(ctx, frame))
+    response = api.wsapi(ctx, frame)
+    if response is None:
+        ctx.echo(format_output(ctx, []))
+        return
 
-    ctx.echo(format_output(ctx, response))
+    ctx.echo(format_output(ctx, [response]))

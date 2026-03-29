@@ -1,8 +1,9 @@
 """Service plugin for Home Assistant CLI (hass-cli)."""
+
 import logging
 import re as reg
 import sys
-from typing import Any, Dict, List, Pattern  # noqa: F401
+from typing import Any, Dict, List
 
 import click
 
@@ -15,38 +16,36 @@ import homeassistant_cli.remote as api
 _LOGGING = logging.getLogger(__name__)
 
 
-@click.group('service')
+@click.group("service")
 @pass_context
-def cli(ctx):
+def cli(ctx: Configuration) -> None:
     """Call and work with services."""
 
 
-@cli.command('list')
-@click.argument('servicefilter', default=".*", required=False)
+@cli.command("list")
+@click.argument("servicefilter", default=".*", required=False)
 @pass_context
-def list_cmd(ctx: Configuration, servicefilter):
+def list_cmd(ctx: Configuration, servicefilter: str) -> None:
     """Get list of services."""
-    ctx.auto_output('table')
+    ctx.auto_output("table")
     services = api.get_services(ctx)
     service_filter = servicefilter
 
-    result = []  # type: List[Dict[Any,Any]]
+    result: List[Dict[str, Any]] = []
     if service_filter == ".*":
         result = services
     else:
         result = services
-        service_filter_re = reg.compile(service_filter)  # type: Pattern
+        service_filter_re = reg.compile(service_filter)
 
-        domains = []
+        domains: List[Dict[str, Any]] = []
         for domain in services:
-            domain_name = domain['domain']
-            domain_data = {}
-            services_dict = domain['services']
-            service_data = {}
+            domain_name = domain["domain"]
+            domain_data: Dict[str, Any] = {}
+            services_dict = domain["services"]
+            service_data: Dict[str, Any] = {}
             for service in services_dict:
-                if service_filter_re.search(
-                    "{}.{}".format(domain_name, service)
-                ):
+                if service_filter_re.search("{}.{}".format(domain_name, service)):
                     service_data[service] = services_dict[service]
 
             if service_data:
@@ -55,40 +54,38 @@ def list_cmd(ctx: Configuration, servicefilter):
                 domains.append(domain_data)
         result = domains
 
-    flatten_result = []  # type: List[Dict[str,Any]]
+    flatten_result: List[Dict[str, Any]] = []
     for domain in result:
-        for service in domain['services']:
-            item = {}
-            item['domain'] = domain['domain']
-            item['service'] = service
-            item = {**item, **domain['services'][service]}
+        for service in domain["services"]:
+            item: Dict[str, Any] = {}
+            item["domain"] = domain["domain"]
+            item["service"] = service
+            item = {**item, **domain["services"][service]}
             flatten_result.append(item)
 
     cols = [
-        ('DOMAIN', 'domain'),
-        ('SERVICE', 'service'),
-        ('DESCRIPTION', 'description'),
+        ("DOMAIN", "domain"),
+        ("SERVICE", "service"),
+        ("DESCRIPTION", "description"),
     ]
     ctx.echo(
-        format_output(
-            ctx, flatten_result, columns=ctx.columns if ctx.columns else cols
-        )
+        format_output(ctx, flatten_result, columns=ctx.columns if ctx.columns else cols)
     )
 
 
-@cli.command('call')
+@cli.command("call")
 @click.argument(
-    'service',
+    "service",
     required=True,
-    shell_complete=autocompletion.services,  # type: ignore
+    shell_complete=autocompletion.services,
 )
 @click.option(
-    '--arguments', help="Comma separated key/value pairs to use as arguments."
+    "--arguments", help="Comma separated key/value pairs to use as arguments."
 )
 @pass_context
-def call(ctx: Configuration, service, arguments):
+def call(ctx: Configuration, service: str, arguments: str | None) -> None:
     """Call a service."""
-    ctx.auto_output('data')
+    ctx.auto_output("data")
     _LOGGING.debug("service call <start>")
     parts = service.split(".")
     if len(parts) != 2:
@@ -96,7 +93,7 @@ def call(ctx: Configuration, service, arguments):
         sys.exit(1)
 
     _LOGGING.debug("Convert arguments %s to dict", arguments)
-    data = to_attributes(arguments)
+    data = to_attributes(arguments or "")
 
     _LOGGING.debug("service call_service")
 

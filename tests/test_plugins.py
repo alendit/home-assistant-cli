@@ -7,25 +7,25 @@ import pytest
 from homeassistant_cli.cli import HomeAssistantCli, cli
 
 DFEAULT_PLUGINS = [
-    'automation',
-    'completion',
-    'config',
-    'discover',
-    'helper',
-    'scene',
-    'script',
-    'state',
-    'entity',
-    'event',
-    'ha',
-    'info',
-    'map',
-    'raw',
-    'service',
-    'system',
-    'template',
-    'area',
-    'device',
+    "automation",
+    "completion",
+    "config",
+    "discover",
+    "helper",
+    "scene",
+    "script",
+    "state",
+    "entity",
+    "event",
+    "ha",
+    "info",
+    "map",
+    "raw",
+    "service",
+    "system",
+    "template",
+    "area",
+    "device",
 ]
 
 DFEAULT_PLUGINS.sort()
@@ -41,7 +41,7 @@ def test_commands_match_expected(defaultplugins_sorted) -> None:
     """Test plugin discovery."""
     hac = HomeAssistantCli()
 
-    ctx = cli.make_context('hass-cli', ['info'])
+    ctx = cli.make_context("hass-cli", ["info"])
 
     cmds = hac.list_commands(ctx)
 
@@ -55,21 +55,21 @@ def test_commands_match_expected(defaultplugins_sorted) -> None:
 @pytest.mark.parametrize(
     "plugin",
     [
-        'automation',
-        'helper',
-        'scene',
-        'script',
-        'service',
-        'state',
-        'system',
-        'template',
+        "automation",
+        "helper",
+        "scene",
+        "script",
+        "service",
+        "state",
+        "system",
+        "template",
     ],
 )
 def test_commands_loads(plugin) -> None:
     """Test loading of command."""
     hac = HomeAssistantCli()
 
-    ctx = cli.make_context('hass-cli', ['info'])
+    ctx = cli.make_context("hass-cli", ["info"])
 
     cmd = hac.get_command(ctx, plugin)
 

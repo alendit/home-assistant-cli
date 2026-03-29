@@ -1,4 +1,5 @@
 """System plugin for Home Assistant CLI (hass-cli)."""
+
 import logging
 
 import click
@@ -12,22 +13,22 @@ import homeassistant_cli.remote as api
 _LOGGING = logging.getLogger(__name__)
 
 
-@click.group('system')
+@click.group("system")
 @pass_context
-def cli(ctx):
+def cli(ctx: Configuration) -> None:
     """System details and operations for Home Assistant."""
 
 
 @cli.command()
 @pass_context
-def log(ctx):
+def log(ctx: Configuration) -> None:
     """Get errors from Home Assistant."""
     click.echo(api.get_raw_error_log(ctx))
 
 
 @cli.command()
 @pass_context
-def health(ctx: Configuration):
+def health(ctx: Configuration) -> None:
     """Get system health from Home Assistant."""
     info = api.get_health(ctx)
 

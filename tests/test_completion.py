@@ -1,4 +1,5 @@
 """Tests file for Home Assistant CLI (hass-cli)."""
+
 from typing import cast
 
 import requests_mock
@@ -12,12 +13,12 @@ def test_entity_completion(basic_entities_text) -> None:
     """Test completion for entities."""
     with requests_mock.Mocker() as mock:
         mock.get(
-            'http://localhost:8123/api/states',
+            "http://localhost:8123/api/states",
             text=basic_entities_text,
             status_code=200,
         )
 
-        cfg = cli.cli.make_context('hass-cli', ['entity', 'get'])
+        cfg = cli.cli.make_context("hass-cli", ["entity", "get"])
         result = autocompletion.entities(
             cast(cfg, Configuration), ["entity", "get"], ""  # type: ignore
         )
@@ -26,23 +27,21 @@ def test_entity_completion(basic_entities_text) -> None:
         resultdict = dict(result)
 
         assert "sensor.one" in resultdict
-        assert resultdict['sensor.one'] == 'friendly long name'
+        assert resultdict["sensor.one"] == "friendly long name"
 
 
 def test_service_completion(default_services_text) -> None:
     """Test completion for services."""
     with requests_mock.Mocker() as mock:
         mock.get(
-            'http://localhost:8123/api/services',
+            "http://localhost:8123/api/services",
             text=default_services_text,
             status_code=200,
         )
 
-        cfg = cli.cli.make_context('hass-cli', ['service', 'list'])
+        cfg = cli.cli.make_context("hass-cli", ["service", "list"])
 
-        result = autocompletion.services(
-            cfg, ["service", "list"], ""  # type: ignore
-        )
+        result = autocompletion.services(cfg, ["service", "list"], "")  # type: ignore
         assert len(result) == 12
 
         resultdict = dict(result)
@@ -56,16 +55,14 @@ def test_event_completion(default_events_text) -> None:
     """Test completion for events."""
     with requests_mock.Mocker() as mock:
         mock.get(
-            'http://localhost:8123/api/events',
+            "http://localhost:8123/api/events",
             text=default_events_text,
             status_code=200,
         )
 
-        cfg = cli.cli.make_context('hass-cli', ['events', 'list'])
+        cfg = cli.cli.make_context("hass-cli", ["events", "list"])
 
-        result = autocompletion.events(
-            cfg, ["events", "list"], ""  # type: ignore
-        )
+        result = autocompletion.events(cfg, ["events", "list"], "")  # type: ignore
         assert len(result) == 11
 
         resultdict = dict(result)
@@ -78,16 +75,14 @@ def test_area_completion(default_events_text) -> None:
     """Test completion for Area."""
     with requests_mock.Mocker() as mock:
         mock.get(
-            'http://localhost:8123/api/events',
+            "http://localhost:8123/api/events",
             text=default_events_text,
             status_code=200,
         )
 
-        cfg = cli.cli.make_context('hass-cli', ['events', 'list'])
+        cfg = cli.cli.make_context("hass-cli", ["events", "list"])
 
-        result = autocompletion.events(
-            cfg, ["events", "list"], ""  # type: ignore
-        )
+        result = autocompletion.events(cfg, ["events", "list"], "")  # type: ignore
         assert len(result) == 11
 
         resultdict = dict(result)

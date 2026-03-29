@@ -1,4 +1,5 @@
 """Tests file for Home Assistant CLI (hass-cli)."""
+
 import json
 
 from click.testing import CliRunner
@@ -53,16 +54,14 @@ def test_service_completion(default_services) -> None:
     """Test completion for services with filter."""
     with requests_mock.Mocker() as mock:
         mock.get(
-            'http://localhost:8123/api/services',
+            "http://localhost:8123/api/services",
             json=default_services,
             status_code=200,
         )
 
         cfg = Configuration()
 
-        result = autocompletion.services(
-            cfg, ["service", "call"], "light.turn"
-        )
+        result = autocompletion.services(cfg, ["service", "call"], "light.turn")
         assert len(result) == 2
 
         resultdict = dict(result)

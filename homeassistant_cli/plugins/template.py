@@ -1,7 +1,8 @@
 """Template plugin for Home Assistant CLI (hass-cli)."""
+
 import logging
 import os
-from typing import Any, Dict  # noqa, flake8 issue
+from typing import Any, Dict, Optional, TextIO
 
 import click
 from jinja2 import Environment, FileSystemLoader
@@ -13,7 +14,7 @@ import homeassistant_cli.remote as api
 _LOGGING = logging.getLogger(__name__)
 
 
-def render(template_path, data, strict=False) -> str:
+def render(template_path: str, data: Dict[str, Any], strict: bool = False) -> str:
     """Render template."""
     env = Environment(
         loader=FileSystemLoader(os.path.dirname(template_path)),
@@ -31,17 +32,22 @@ def render(template_path, data, strict=False) -> str:
     return output
 
 
-@click.command('template')
-@click.argument('template', required=True, type=click.File())
-@click.argument('datafile', type=click.File(), required=False)
+@click.command("template")
+@click.argument("template", required=True, type=click.File())
+@click.argument("datafile", type=click.File(), required=False)
 @click.option(
-    '--local',
+    "--local",
     default=False,
     is_flag=True,
     help="If should render template locally.",
 )
 @pass_context
-def cli(ctx: Configuration, template, datafile, local: bool) -> None:
+def cli(
+    ctx: Configuration,
+    template: TextIO,
+    datafile: Optional[TextIO],
+    local: bool,
+) -> None:
     """Render templates on server or locally.
 
     TEMPLATE - jinja2 template file
@@ -49,7 +55,7 @@ def cli(ctx: Configuration, template, datafile, local: bool) -> None:
     """
     variables = {}  # type: Dict[str, Any]
     if datafile:
-        variables = ctx.yamlload(datafile)
+        variables = ctx.yamlload(datafile.read())
 
     templatestr = template.read()
 

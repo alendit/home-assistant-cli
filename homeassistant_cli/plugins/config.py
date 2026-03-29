@@ -1,4 +1,5 @@
 """Configuration plugin for Home Assistant CLI (hass-cli)."""
+
 import click
 
 from homeassistant_cli.cli import pass_context
@@ -7,11 +8,11 @@ from homeassistant_cli.helper import format_output
 import homeassistant_cli.remote as api
 
 
-@click.group('config')
+@click.group("config")
 @pass_context
-def cli(ctx):
+def cli(ctx: Configuration) -> None:
     """Get configuration from a Home Assistant instance."""
-    ctx.auto_output('table')
+    ctx.auto_output("table")
 
 
 COLUMNS_DETAILS = [
@@ -29,7 +30,7 @@ COLUMNS_DETAILS = [
 
 @cli.command()
 @pass_context
-def full(ctx: Configuration):
+def full(ctx: Configuration) -> None:
     """Get full details on the configuration from Home Assistant."""
     click.echo(
         format_output(
@@ -42,38 +43,38 @@ def full(ctx: Configuration):
 
 @cli.command()
 @pass_context
-def components(ctx: Configuration):
+def components(ctx: Configuration) -> None:
     """Get loaded components from Home Assistant."""
     click.echo(
         format_output(
             ctx,
-            api.get_config(ctx)['components'],
-            columns=ctx.columns if ctx.columns else [('COMPONENT', '$')],
+            api.get_config(ctx)["components"],
+            columns=ctx.columns if ctx.columns else [("COMPONENT", "$")],
         )
     )
 
 
 @cli.command()
 @pass_context
-def whitelist_dirs(ctx: Configuration):
+def whitelist_dirs(ctx: Configuration) -> None:
     """Get the whitelisted directories from Home Assistant."""
     click.echo(
         format_output(
             ctx,
-            api.get_config(ctx)['whitelist_external_dirs'],
-            columns=ctx.columns if ctx.columns else [('DIRECTORY', '$')],
+            api.get_config(ctx)["whitelist_external_dirs"],
+            columns=ctx.columns if ctx.columns else [("DIRECTORY", "$")],
         )
     )
 
 
 @cli.command()
 @pass_context
-def release(ctx: Configuration):
+def release(ctx: Configuration) -> None:
     """Get the release of Home Assistant."""
     click.echo(
         format_output(
             ctx,
-            [api.get_config(ctx)['version']],
-            columns=ctx.columns if ctx.columns else [('VERSION', '$')],
+            [api.get_config(ctx)["version"]],
+            columns=ctx.columns if ctx.columns else [("VERSION", "$")],
         )
     )
