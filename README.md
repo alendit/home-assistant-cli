@@ -1,6 +1,6 @@
 # Home Assistant CLI
 
-[![CI](https://github.com/home-assistant-ecosystem/home-assistant-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/home-assistant-ecosystem/home-assistant-cli/actions/workflows/ci.yml)
+[![CI](https://github.com/alendit/home-assistant-cli/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/alendit/home-assistant-cli/actions/workflows/ci.yml)
 [![License](https://img.shields.io/github/license/home-assistant-ecosystem/home-assistant-cli)](LICENSE.md)
 
 `hass-cli` is a command-line client for Home Assistant. It can inspect runtime
