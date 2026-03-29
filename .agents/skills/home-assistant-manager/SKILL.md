@@ -72,6 +72,11 @@ Repo-local `hass-cli`:
 ```bash
 uv run hass-cli state list
 uv run hass-cli state get sensor.entity_name
+uv run hass-cli automation list
+uv run hass-cli automation show automation.name
+uv run hass-cli script list
+uv run hass-cli scene list
+uv run hass-cli helper list
 uv run hass-cli service list automation
 uv run hass-cli service call automation.trigger --arguments entity_id=automation.name
 uv run hass-cli config full
@@ -223,9 +228,11 @@ Look for:
 4. Prefer approving `["uv", "run", "hass-cli"]` over broader `uv` prefixes.
 5. Start live automation discovery with `state list automation` and `entity list`
    before reaching for raw config endpoints.
-6. For raw REST calls, prefer `raw get config` or `raw get /api/config`.
-7. Run `ha core check` before disruptive operations.
-8. Prefer reload over restart when possible.
-9. Manually trigger automations after deployment.
-10. Check logs after every meaningful change.
-11. Verify the resulting state instead of assuming success.
+6. Prefer typed commands like `automation show`, `script show`, `scene show`,
+   and `helper list` before dropping to `raw`.
+7. For raw REST calls, prefer `raw get config` or `raw get /api/config`.
+8. Run `ha core check` before disruptive operations.
+9. Prefer reload over restart when possible.
+10. Manually trigger automations after deployment.
+11. Check logs after every meaningful change.
+12. Verify the resulting state instead of assuming success.
