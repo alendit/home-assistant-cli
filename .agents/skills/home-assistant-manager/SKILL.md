@@ -74,7 +74,11 @@ uv run hass-cli state list
 uv run hass-cli state get sensor.entity_name
 uv run hass-cli automation list
 uv run hass-cli automation show automation.name
+uv run hass-cli automation export automation.name
+uv run hass-cli automation patch automation.name --json '{"mode":"restart"}'
 uv run hass-cli script list
+uv run hass-cli script export script.name
+uv run hass-cli script patch script.name --json '{"mode":"queued"}'
 uv run hass-cli scene list
 uv run hass-cli helper list
 uv run hass-cli service list automation
@@ -101,6 +105,22 @@ uv run hass-cli -o json raw ws config/device_registry/list
 ```
 
 Avoid `raw get /config` unless you intentionally want a non-API frontend route.
+
+Config-backed edit workflow:
+
+```bash
+# Inspect the exact stored payload shape accepted by update:
+uv run hass-cli -o json automation export automation.name
+uv run hass-cli -o json script export script.name
+
+# For small edits, prefer an inline merge patch over stdin:
+uv run hass-cli automation patch automation.name --json '{"description":"Updated","mode":"restart"}'
+uv run hass-cli script patch script.name --json '{"mode":"queued"}'
+```
+
+Do not use `automation show` or `script show` as the template for `update`.
+Those commands include runtime fields for operator context, while `export`
+returns the update-safe stored payload.
 
 Host-level Home Assistant CLI over SSH:
 
@@ -230,9 +250,14 @@ Look for:
    before reaching for raw config endpoints.
 6. Prefer typed commands like `automation show`, `script show`, `scene show`,
    and `helper list` before dropping to `raw`.
-7. For raw REST calls, prefer `raw get config` or `raw get /api/config`.
-8. Run `ha core check` before disruptive operations.
-9. Prefer reload over restart when possible.
-10. Manually trigger automations after deployment.
-11. Check logs after every meaningful change.
-12. Verify the resulting state instead of assuming success.
+7. For config-backed edits, prefer `automation export` or `script export` to
+   inspect the stored payload, and `automation patch` or `script patch` for
+   small inline changes.
+8. Avoid heredocs, herestrings, and temp files with `uv run hass-cli`; approval
+   rules usually will not auto-match them. Prefer inline `--json` literals.
+9. For raw REST calls, prefer `raw get config` or `raw get /api/config`.
+10. Run `ha core check` before disruptive operations.
+11. Prefer reload over restart when possible.
+12. Manually trigger automations after deployment.
+13. Check logs after every meaningful change.
+14. Verify the resulting state instead of assuming success.

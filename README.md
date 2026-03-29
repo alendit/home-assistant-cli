@@ -112,14 +112,18 @@ objects instead of making you stitch everything together through `state`,
 hass-cli automation list
 hass-cli automation find "lava|motion"
 hass-cli automation show automation.kitchen_lights
+hass-cli automation export automation.kitchen_lights
+hass-cli automation patch automation.kitchen_lights --json '{"mode":"restart"}'
 hass-cli automation trigger automation.kitchen_lights
 hass-cli automation disable automation.kitchen_lights
 hass-cli automation update automation.kitchen_lights --json '{"alias":"Kitchen Lights"}'
 ```
 
-`automation show` and `automation update` work with stored automation
-configuration and can resolve references from an entity ID, storage ID, or
-friendly name.
+`automation export` returns the exact stored config payload accepted by
+`automation update`. `automation show` adds runtime fields for operator context.
+For smaller changes, prefer `automation patch` so you can keep the edit inline.
+All automation config commands can resolve references from an entity ID, storage
+ID, or friendly name.
 
 #### Scripts
 
@@ -127,6 +131,8 @@ friendly name.
 hass-cli script list
 hass-cli script find bedtime
 hass-cli script show script.goodnight
+hass-cli script export script.goodnight
+hass-cli script patch script.goodnight --json '{"mode":"queued"}'
 hass-cli script run script.goodnight --arguments room=bedroom
 hass-cli script stop script.goodnight
 ```
