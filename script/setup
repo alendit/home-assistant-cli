@@ -5,6 +5,4 @@
 set -e
 
 cd "$(dirname "$0")/.."
-script/bootstrap
-
-pip3 install -e .
+uv sync

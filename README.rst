@@ -19,13 +19,13 @@ To use latest release:
 
 .. code:: bash
 
-    $ pip install homeassistant-cli
+    $ uv tool install homeassistant-cli
 
 To use latest pre-release from ``dev`` branch:
 
 .. code:: bash
 
-   $ pip install git+https://github.com/home-assistant-ecosystem/home-assistant-cli@dev
+   $ uv tool install git+https://github.com/home-assistant-ecosystem/home-assistant-cli@dev
 
 The developers of `hass-cli` usually provide up-to-date `packages <https://src.fedoraproject.org/rpms/home-assistant-cli>`_ for recent Fedora and EPEL releases. Use ``dnf`` for the installation:
 
@@ -49,6 +49,17 @@ be available in the ``unstable`` channel.
 .. code:: bash
 
    $ nix-env -iA nixos.home-assistant-cli
+
+Development
+-----------
+
+To work on the project locally:
+
+.. code:: bash
+
+   $ uv sync
+   $ uv run pytest
+   $ uv build
 
 Docker
 -------

@@ -14,7 +14,7 @@
 cd "$(dirname "$0")/.."
 
 rm -rf dist
-python3 setup.py sdist bdist_wheel
+uv build
 
 echo Uploading to transfer.sh...
 MARKER=${1:-`date +%Y%m%d%H%M%S`-$USER}
