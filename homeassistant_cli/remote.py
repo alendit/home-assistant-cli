@@ -100,41 +100,66 @@ def wsapi(
 
     If no callback return data returned.
     """
-    loop = asyncio.get_event_loop()
-
     async def fetcher() -> Optional[Dict]:
         async with aiohttp.ClientSession() as session:
             async with session.ws_connect(
-                resolve_server(ctx) + "/api/websocket"
+                resolve_server(ctx) + "/api/websocket",
+                max_msg_size=16 * 1024 * 1024,
             ) as wsconn:
+                authed = False
+                request = dict(frame)
+                request['id'] = 1
 
-                await wsconn.send_str(
-                    json.dumps({'type': 'auth', 'access_token': ctx.token})
-                )
+                while not authed:
+                    msg = await wsconn.receive()
+                    if msg.type == aiohttp.WSMsgType.ERROR:
+                        raise HomeAssistantCliError("Websocket connection error")
+                    if msg.type == aiohttp.WSMsgType.CLOSED:
+                        raise HomeAssistantCliError("Websocket connection closed")
+                    if msg.type != aiohttp.WSMsgType.TEXT:
+                        continue
 
-                frame['id'] = 1
+                    mydata = json.loads(msg.data)  # type: Dict[str, Any]
 
-                await wsconn.send_str(json.dumps(frame))
+                    if mydata['type'] == 'auth_required':
+                        await wsconn.send_str(
+                            json.dumps(
+                                {
+                                    'type': 'auth',
+                                    'access_token': ctx.token,
+                                }
+                            )
+                        )
+                    elif mydata['type'] == 'auth_ok':
+                        authed = True
+                    elif mydata['type'] == 'auth_invalid':
+                        raise HomeAssistantCliError(mydata.get('message'))
+
+                await wsconn.send_str(json.dumps(request))
 
                 while True:
                     msg = await wsconn.receive()
                     if msg.type == aiohttp.WSMsgType.ERROR:
-                        break
-                    elif msg.type == aiohttp.WSMsgType.CLOSED:
-                        break
-                    elif msg.type == aiohttp.WSMsgType.TEXT:
-                        mydata = json.loads(msg.data)  # type: Dict
+                        raise HomeAssistantCliError("Websocket connection error")
+                    if msg.type == aiohttp.WSMsgType.CLOSED:
+                        raise HomeAssistantCliError("Websocket connection closed")
+                    if msg.type != aiohttp.WSMsgType.TEXT:
+                        continue
 
-                        if callback:
-                            callback(mydata)
-                        elif mydata['type'] == 'result':
-                            return mydata
-                        elif mydata['type'] == 'auth_invalid':
-                            raise HomeAssistantCliError(mydata.get('message'))
+                    mydata = json.loads(msg.data)  # type: Dict[str, Any]
+
+                    if mydata['type'] == 'auth_invalid':
+                        raise HomeAssistantCliError(mydata.get('message'))
+
+                    if callback:
+                        callback(mydata)
+                        continue
+
+                    if mydata['type'] == 'result':
+                        return mydata
         return None
 
-    result = loop.run_until_complete(fetcher())
-    return result
+    return asyncio.run(fetcher())
 
 
 class JSONEncoder(json.JSONEncoder):
@@ -160,11 +185,11 @@ def get_areas(ctx: Configuration) -> List[Dict[str, Any]]:
     """Return all areas."""
     frame = {'type': hass.WS_TYPE_AREA_REGISTRY_LIST}
 
-    areas = cast(Dict, wsapi(ctx, frame))[
-        'result'
-    ]  # type: List[Dict[str, Any]]
+    response = cast(Optional[Dict[str, Any]], wsapi(ctx, frame))
+    if response is None:
+        raise HomeAssistantCliError("No response returned from websocket API")
 
-    return areas
+    return cast(List[Dict[str, Any]], response['result'])
 
 
 def find_area(ctx: Configuration, id_or_name: str) -> Optional[Dict[str, str]]:
@@ -268,40 +293,46 @@ def get_health(ctx: Configuration) -> Dict[str, Any]:
     """Get system Health."""
     frame = {'type': 'system_health/info'}
 
-    info = cast(Dict[str, Dict[str, Any]], wsapi(ctx, frame))['result']
+    response = cast(Optional[Dict[str, Any]], wsapi(ctx, frame))
+    if response is None:
+        raise HomeAssistantCliError("No response returned from websocket API")
 
-    return info
+    return cast(Dict[str, Any], response['result'])
 
 
 def get_devices(ctx: Configuration) -> List[Dict[str, Any]]:
     """Return all devices."""
     frame = {'type': hass.WS_TYPE_DEVICE_REGISTRY_LIST}
 
-    devices = cast(Dict[str, List[Dict[str, Any]]], wsapi(ctx, frame))[
-        'result'
-    ]
+    response = cast(Optional[Dict[str, Any]], wsapi(ctx, frame))
+    if response is None:
+        raise HomeAssistantCliError("No response returned from websocket API")
 
-    return devices
+    return cast(List[Dict[str, Any]], response['result'])
 
 
 def get_entities(ctx: Configuration) -> List[Dict[str, Any]]:
     """Return all entities."""
     frame = {'type': hass.WS_TYPE_ENTITY_REGISTRY_LIST}
 
-    devices = cast(Dict[str, List[Dict[str, Any]]], wsapi(ctx, frame))[
-        'result'
-    ]
+    response = cast(Optional[Dict[str, Any]], wsapi(ctx, frame))
+    if response is None:
+        raise HomeAssistantCliError("No response returned from websocket API")
 
-    return devices
+    return cast(List[Dict[str, Any]], response['result'])
 
 
-def get_entity(ctx: Configuration, entity_id: str) -> List[Dict[str, Any]]:
-    """Return id."""
+def get_entity(
+    ctx: Configuration, entity_id: str
+) -> Optional[Dict[str, Any]]:
+    """Return entity registry details."""
     frame = {'type': hass.WS_TYPE_ENTITY_REGISTRY_GET, 'entity_id': entity_id}
 
-    result = cast(Dict[str, List[Dict[str, Any]]], wsapi(ctx, frame))
+    response = cast(Optional[Dict[str, Any]], wsapi(ctx, frame))
+    if response is None:
+        return None
 
-    return result['id']
+    return cast(Optional[Dict[str, Any]], response.get('result'))
 
 
 def validate_api(ctx: Configuration) -> APIStatus:

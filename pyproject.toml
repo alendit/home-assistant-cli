@@ -27,6 +27,7 @@ dependencies = [
     "jinja2>=3.1,<4",
     "jsonpath-ng>=1.6,<2",
     "netdisco>=3.0,<4",
+    "packaging>=24,<27",
     "regex>=2024.5",
     "requests>=2.31,<3",
     "ruamel.yaml>=0.18,<0.19",
