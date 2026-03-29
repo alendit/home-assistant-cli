@@ -324,17 +324,18 @@ def validate_api(ctx: Configuration) -> APIStatus:
 def get_info(ctx: Configuration) -> Dict[str, Any]:
     """Get basic info about the Home Assistant instance."""
     try:
-        req = restapi(ctx, METH_GET, hass.URL_API_DISCOVERY_INFO)
-
-        req.raise_for_status()
-
-        return (
-            cast(Dict[str, Any], req.json()) if req.status_code == 200 else {}
-        )
-
+        config = get_config(ctx)
     except (HomeAssistantCliError, ValueError):
         raise HomeAssistantCliError("Unexpected error retrieving information")
-        # ValueError if req.json() can't parse the json
+
+    return {
+        'base_url': config.get('external_url')
+        or config.get('internal_url')
+        or resolve_server(ctx),
+        'location_name': config.get('location_name'),
+        'requires_api_password': False,
+        'version': config.get('version'),
+    }
 
 
 def get_events(ctx: Configuration) -> Dict[str, Any]:

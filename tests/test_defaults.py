@@ -80,7 +80,7 @@ def test_defaults(
                 expserver, json={"name": "mock response"}, status_code=200
             )
             ctx = cli.cli.make_context(
-                'hass-cli', ['--timeout', '1', 'config']
+                'hass-cli', ['--timeout', '1', 'config', 'full']
             )
             with ctx:  # type: ignore
                 cli.cli.invoke(ctx)

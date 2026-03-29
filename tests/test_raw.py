@@ -55,12 +55,12 @@ def test_apimethod_completion(default_services) -> None:
     """Test completion for raw API methods."""
     cfg = Configuration()
 
-    result = autocompletion.api_methods(cfg, ["raw", "get"], "/api/disc")
+    result = autocompletion.api_methods(cfg, ["raw", "get"], "/api/con")
     assert len(result) == 1
 
     resultdict = dict(result)
 
-    assert "/api/discovery_info" in resultdict
+    assert "/api/config" in resultdict
 
 
 # def test_wsapimethod_completion(default_services) -> None:
