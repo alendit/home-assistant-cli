@@ -47,7 +47,7 @@ def restapi(
     ctx: Configuration,
     method: str,
     path: str,
-    data: Optional[Dict[str, Any]] = None,
+    data: Optional[Any] = None,
 ) -> requests.Response:
     """Make a call to the Home Assistant REST API."""
     if data is None:

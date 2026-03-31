@@ -118,6 +118,8 @@ def websocket(
            Example: --json='{ "area_id":"2c8bf93c8082492f99c989896962f207" }'
     """
     data = load_json_input(json, json_file)
+    if not isinstance(data, dict):
+        raise click.UsageError("Websocket payload must be a JSON object")
 
     frame = {"type": wstype}
     frame = {**frame, **data}  # merging data into frame
