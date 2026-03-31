@@ -10,7 +10,7 @@ import requests
 import homeassistant_cli.autocompletion as autocompletion
 from homeassistant_cli.cli import pass_context
 from homeassistant_cli.config import Configuration
-from homeassistant_cli.helper import format_output
+from homeassistant_cli.helper import format_output, load_json_input
 import homeassistant_cli.remote as api
 
 _LOGGING = logging.getLogger(__name__)
@@ -79,18 +79,19 @@ def get(ctx: Configuration, method: str) -> None:
 @cli.command()
 @click.argument("method", shell_complete=autocompletion.api_methods)
 @click.option("--json")
+@click.option("--json-file", type=click.Path(exists=True, dir_okay=False))
 @pass_context
-def post(ctx: Configuration, method: str, json: Optional[str]) -> None:
+def post(
+    ctx: Configuration,
+    method: str,
+    json: Optional[str],
+    json_file: Optional[str],
+) -> None:
     """Do a POST request against /api/<method>.
 
     METHOD accepts `config`, `api/config`, or `/api/config`.
     """
-    if json:
-        data = json_.loads(
-            json if json != "-" else click.get_text_stream("stdin").read()
-        )
-    else:
-        data = {}
+    data = load_json_input(json, json_file)
 
     response = api.restapi(ctx, "post", _normalize_api_method(method), data)
 
@@ -100,8 +101,14 @@ def post(ctx: Configuration, method: str, json: Optional[str]) -> None:
 @cli.command("ws")
 @click.argument("wstype", shell_complete=autocompletion.wsapi_methods)
 @click.option("--json")
+@click.option("--json-file", type=click.Path(exists=True, dir_okay=False))
 @pass_context
-def websocket(ctx: Configuration, wstype: str, json: Optional[str]) -> None:
+def websocket(
+    ctx: Configuration,
+    wstype: str,
+    json: Optional[str],
+    json_file: Optional[str],
+) -> None:
     r"""Send a websocket request against /api/websocket.
 
     WSTYPE is name of websocket methods.
@@ -110,12 +117,7 @@ def websocket(ctx: Configuration, wstype: str, json: Optional[str]) -> None:
     --json is dictionary to pass in addition to the type.
            Example: --json='{ "area_id":"2c8bf93c8082492f99c989896962f207" }'
     """
-    if json:
-        data = json_.loads(
-            json if json != "-" else click.get_text_stream("stdin").read()
-        )
-    else:
-        data = {}
+    data = load_json_input(json, json_file)
 
     frame = {"type": wstype}
     frame = {**frame, **data}  # merging data into frame

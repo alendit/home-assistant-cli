@@ -15,6 +15,7 @@ _LOGGING = logging.getLogger(__name__)
 
 HELPER_DOMAINS = (
     "counter",
+    "integration",
     "input_boolean",
     "input_button",
     "input_datetime",
@@ -22,6 +23,7 @@ HELPER_DOMAINS = (
     "input_select",
     "input_text",
     "timer",
+    "utility_meter",
 )
 
 COLS = [

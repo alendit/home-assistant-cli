@@ -10,7 +10,9 @@ DFEAULT_PLUGINS = [
     "automation",
     "completion",
     "config",
+    "dashboard",
     "discover",
+    "energy",
     "helper",
     "scene",
     "script",
@@ -56,6 +58,8 @@ def test_commands_match_expected(defaultplugins_sorted) -> None:
     "plugin",
     [
         "automation",
+        "dashboard",
+        "energy",
         "helper",
         "scene",
         "script",

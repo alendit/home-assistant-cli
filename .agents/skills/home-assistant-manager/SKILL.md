@@ -72,6 +72,9 @@ Repo-local `hass-cli`:
 ```bash
 uv run hass-cli state list
 uv run hass-cli state get sensor.entity_name
+uv run hass-cli energy show
+uv run hass-cli energy device list
+uv run hass-cli dashboard show dashboard-electricity
 uv run hass-cli automation list
 uv run hass-cli automation show automation.name
 uv run hass-cli automation export automation.name
@@ -85,6 +88,47 @@ uv run hass-cli service list automation
 uv run hass-cli service call automation.trigger --arguments entity_id=automation.name
 uv run hass-cli config full
 uv run hass-cli info
+```
+
+Energy workflows:
+
+```bash
+# Inspect current Energy dashboard wiring:
+uv run hass-cli energy show
+uv run hass-cli energy validate
+uv run hass-cli energy device list
+uv run hass-cli energy grid list
+
+# Add or update an Individual device:
+uv run hass-cli energy device add sensor.plug_quooker_power_consumption \
+  --rate sensor.0xa4c1385254160acc_power \
+  --name "Plug Quooker"
+
+# Remove a mistaken grid source:
+uv run hass-cli energy grid clear
+
+# Replace the grid source with a real whole-home meter:
+uv run hass-cli energy grid set --energy-from sensor.grid_energy_total
+```
+
+Dashboard workflows:
+
+```bash
+# Inspect a storage dashboard:
+uv run hass-cli dashboard show dashboard-electricity
+
+# Save a full dashboard payload from stdin or a file:
+cat dashboard.json | uv run hass-cli dashboard save dashboard-electricity --json -
+uv run hass-cli dashboard save --json-file dashboard.json
+```
+
+Helper discovery:
+
+```bash
+# This now includes integration and utility_meter helpers:
+uv run hass-cli helper list
+uv run hass-cli helper list --type integration
+uv run hass-cli helper list --type utility_meter
 ```
 
 Live automation inspection:

@@ -75,3 +75,31 @@ def test_device_assign(default_areas, default_devices) -> None:
                 assert result.exit_code == 0
                 expected = "Successfully assigned 'Kitchen' to 'Kitchen table left'\n"
                 assert result.output == expected
+
+
+def test_device_show_with_entities(default_devices, default_entities) -> None:
+    """Device show should optionally include entities for the device."""
+    with (
+        mock.patch(
+            "homeassistant_cli.remote.get_devices", return_value=default_devices
+        ),
+        mock.patch(
+            "homeassistant_cli.remote.get_entities", return_value=default_entities
+        ),
+    ):
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.cli,
+            [
+                "--output=json",
+                "device",
+                "show",
+                "Kitchen table left",
+                "--entities",
+            ],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert data["name"] == "Kitchen table left"
+        assert isinstance(data["entities"], list)

@@ -164,3 +164,28 @@ def test_raw_ws_data() -> None:
 
         data = json.loads(result.output)
         assert len(data) == 1
+
+
+def test_raw_ws_json_file(tmp_path) -> None:
+    """Test websocket with file-backed JSON data."""
+    payload = tmp_path / "payload.json"
+    payload.write_text('{ "id":"secret"}')
+
+    with mocker.patch(
+        "homeassistant_cli.remote.wsapi", return_value={"result": "worked"}
+    ) as mockmethod:
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.cli,
+            [
+                "--output=json",
+                "raw",
+                "ws",
+                "config/wsmethod",
+                "--json-file",
+                str(payload),
+            ],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0
+        mockmethod.assert_called_with(ANY, {"type": "config/wsmethod", "id": "secret"})

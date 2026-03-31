@@ -20,6 +20,16 @@ STATES: list[dict[str, Any]] = [
         "attributes": {"friendly_name": "Beta"},
     },
     {
+        "entity_id": "integration.gamma",
+        "state": "1.23",
+        "attributes": {"friendly_name": "Gamma"},
+    },
+    {
+        "entity_id": "utility_meter.delta",
+        "state": "4.56",
+        "attributes": {"friendly_name": "Delta"},
+    },
+    {
         "entity_id": "scene.ignore_me",
         "state": "unknown",
         "attributes": {"friendly_name": "Ignore Me"},
@@ -45,9 +55,11 @@ def test_helper_list_aggregates_domains() -> None:
         )
         assert result.exit_code == 0
         data = json.loads(result.output)
-        assert len(data) == 2
-        assert data[0]["domain"] == "input_boolean"
-        assert data[1]["domain"] == "timer"
+        assert len(data) == 4
+        assert data[0]["domain"] == "integration"
+        assert data[1]["domain"] == "input_boolean"
+        assert data[2]["domain"] == "timer"
+        assert data[3]["domain"] == "utility_meter"
 
 
 def test_helper_list_type_filter() -> None:
@@ -83,3 +95,21 @@ def test_helper_show() -> None:
         assert result.exit_code == 0
         payload = json.loads(result.output)
         assert payload["entity_id"] == "input_boolean.alpha"
+
+
+def test_helper_list_integration_type_filter() -> None:
+    """Helper list should expose integration helpers."""
+    with mock.patch(
+        "homeassistant_cli.collection.get_domain_states",
+        side_effect=_get_domain_states,
+    ):
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.cli,
+            ["--output=json", "helper", "list", "--type", "integration"],
+            catch_exceptions=False,
+        )
+        assert result.exit_code == 0
+        data = json.loads(result.output)
+        assert len(data) == 1
+        assert data[0]["entity_id"] == "integration.gamma"

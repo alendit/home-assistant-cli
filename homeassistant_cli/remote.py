@@ -299,6 +299,69 @@ def get_health(ctx: Configuration) -> Dict[str, Any]:
     return cast(Dict[str, Any], response["result"])
 
 
+def energy_get_prefs(ctx: Configuration) -> Dict[str, Any]:
+    """Return the configured Energy dashboard preferences."""
+    frame = {"type": "energy/get_prefs"}
+
+    response = wsapi(ctx, frame)
+    if response is None:
+        raise HomeAssistantCliError("No response returned from websocket API")
+
+    return cast(Dict[str, Any], response["result"])
+
+
+def energy_save_prefs(ctx: Configuration, prefs: Dict[str, Any]) -> Dict[str, Any]:
+    """Persist Energy dashboard preferences."""
+    frame = {"type": "energy/save_prefs", **prefs}
+
+    response = wsapi(ctx, frame)
+    if response is None:
+        raise HomeAssistantCliError("No response returned from websocket API")
+
+    return cast(Dict[str, Any], response["result"])
+
+
+def energy_validate(ctx: Configuration) -> Dict[str, Any]:
+    """Validate the currently configured Energy dashboard preferences."""
+    frame = {"type": "energy/validate"}
+
+    response = wsapi(ctx, frame)
+    if response is None:
+        raise HomeAssistantCliError("No response returned from websocket API")
+
+    return cast(Dict[str, Any], response["result"])
+
+
+def lovelace_get_config(
+    ctx: Configuration, url_path: Optional[str] = None
+) -> Dict[str, Any]:
+    """Return the Lovelace config for the default or a named dashboard."""
+    frame: Dict[str, Any] = {"type": "lovelace/config"}
+    if url_path:
+        frame["url_path"] = url_path
+
+    response = wsapi(ctx, frame)
+    if response is None:
+        raise HomeAssistantCliError("No response returned from websocket API")
+
+    return cast(Dict[str, Any], response["result"])
+
+
+def lovelace_save_config(
+    ctx: Configuration, config: Dict[str, Any], url_path: Optional[str] = None
+) -> Any:
+    """Persist the Lovelace config for the default or a named dashboard."""
+    frame: Dict[str, Any] = {"type": "lovelace/config/save", "config": config}
+    if url_path:
+        frame["url_path"] = url_path
+
+    response = wsapi(ctx, frame)
+    if response is None:
+        raise HomeAssistantCliError("No response returned from websocket API")
+
+    return response.get("result")
+
+
 def get_devices(ctx: Configuration) -> List[Dict[str, Any]]:
     """Return all devices."""
     frame = {"type": hass.WS_TYPE_DEVICE_REGISTRY_LIST}

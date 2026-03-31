@@ -61,6 +61,54 @@ def listcmd(ctx: Configuration, devicefilter: str) -> None:
     )
 
 
+@cli.command("show")
+@click.argument("device_id_or_name", required=True)
+@click.option("--entities", "show_entities", is_flag=True, default=False)
+@pass_context
+def show(ctx: Configuration, device_id_or_name: str, show_entities: bool) -> None:
+    """Show a device and optionally include its entities."""
+    ctx.auto_output("data")
+
+    devices = api.get_devices(ctx)
+    device: Optional[Dict[str, Any]] = next(
+        (x for x in devices if x["id"] == device_id_or_name), None
+    )
+    if not device:
+        device = next(
+            (x for x in devices if x["name"] == device_id_or_name),
+            None,
+        )
+    if not device:
+        device = next(
+            (x for x in devices if x.get("name_by_user") == device_id_or_name),
+            None,
+        )
+    if not device:
+        _LOGGING.error("Could not find device with id or name: %s", device_id_or_name)
+        sys.exit(1)
+
+    if show_entities:
+        device = {
+            **device,
+            "entities": [
+                entity
+                for entity in api.get_entities(ctx)
+                if entity.get("device_id") == device["id"]
+            ],
+        }
+
+    ctx.echo(
+        helper.raw_format_output(
+            ctx.output,
+            device,
+            ctx.yaml(),
+            no_headers=ctx.no_headers,
+            table_format=ctx.table_format,
+            sort_by=ctx.sort_by,
+        )
+    )
+
+
 @cli.command("assign")
 @click.argument(
     "area_id_or_name",

@@ -5,8 +5,10 @@ from http.client import HTTPConnection
 import json
 import logging
 import shlex
+from pathlib import Path
 from typing import Any, Dict, Generator, List, Optional, Tuple, Union, cast
 
+import click
 from ruamel.yaml import YAML
 from tabulate import tabulate
 
@@ -44,6 +46,27 @@ def to_tuples(entry: str) -> List[Tuple[str, ...]]:
     for pair in lexer:
         attributes_list.append(tuple(pair.split("=", 1)))
     return attributes_list
+
+
+def load_json_input(
+    json_input: Optional[str], json_file: Optional[str] = None
+) -> Union[Dict[str, Any], List[Any]]:
+    """Load JSON from an inline string, stdin, or file."""
+    if json_input and json_file:
+        raise click.UsageError("Specify only one of --json or --json-file")
+
+    if json_file:
+        return cast(
+            Union[Dict[str, Any], List[Any]], json.loads(Path(json_file).read_text())
+        )
+
+    if json_input:
+        content = (
+            json_input if json_input != "-" else click.get_text_stream("stdin").read()
+        )
+        return cast(Union[Dict[str, Any], List[Any]], json.loads(content))
+
+    return {}
 
 
 def raw_format_output(
