@@ -1,7 +1,7 @@
 # Home Assistant CLI
 
 [![CI](https://github.com/alendit/home-assistant-cli/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/alendit/home-assistant-cli/actions/workflows/ci.yml)
-[![License](https://img.shields.io/github/license/home-assistant-ecosystem/home-assistant-cli)](LICENSE.md)
+[![License](https://img.shields.io/github/license/alendit/home-assistant-cli)](LICENSE.md)
 
 `hass-cli` is a command-line client for Home Assistant. It can inspect runtime
 state, call services, work with registry objects such as devices and areas, and
@@ -15,10 +15,24 @@ YAML, tabular output, and shell completion.
 `homeassistant-cli` supports Python 3.11 and newer. The repository defaults to
 Python 3.14 for local development and CI.
 
-Install the current development branch directly from GitHub:
+This fork lives at [alendit/home-assistant-cli](https://github.com/alendit/home-assistant-cli).
+
+Install the current development branch of `hass-cli` directly from this fork,
+then install the bundled `home-assistant-manager` skill:
 
 ```bash
-uv tool install git+https://github.com/home-assistant-ecosystem/home-assistant-cli@main
+uv tool install git+https://github.com/alendit/home-assistant-cli@main
+hass-cli skill install
+```
+
+That installs the bundled skill into `$CODEX_HOME/skills` or
+`~/.codex/skills`. Restart Codex after installation so the new skill is loaded.
+
+If you only want the skill without installing `hass-cli`, install it from this
+fork with `npx skills add`:
+
+```bash
+npx skills add https://github.com/alendit/home-assistant-cli --skill home-assistant-manager
 ```
 
 Run the local checkout with `uv`:
@@ -26,6 +40,7 @@ Run the local checkout with `uv`:
 ```bash
 uv sync
 uv run hass-cli --help
+uv run hass-cli skill install --target-dir ~/.codex/skills
 ```
 
 Community packages are also available in several ecosystems, including Fedora,
@@ -99,6 +114,7 @@ uv run hass-cli info
 - `event`: interact with the event bus
 - `template`: render templates locally or on the server
 - `raw`: direct REST and websocket access for advanced workflows
+- `config-entry`: inspect configured integrations and drive onboarding flows
 
 ### Typed Home Assistant Commands
 
@@ -158,6 +174,22 @@ hass-cli helper show timer.lava_lampe_timer
 `helper` currently focuses on discovery across supported helper domains such as
 timers and `input_*` helpers. Runtime control still happens through the normal
 entity state and service APIs.
+
+#### Config Entries
+
+```bash
+hass-cli config-entry list
+hass-cli config-entry show 01KN34CRWDARH1TJYKQZX45VBY
+hass-cli config-entry show 01KN34CRWDARH1TJYKQZX45VBY --with-data
+hass-cli config-entry handlers
+hass-cli config-entry init codex_app_server
+hass-cli config-entry continue 01KN34CF2CERPBBNH8G8N4KQDB --json '{"bridge_url":"ws://127.0.0.1:4311"}'
+hass-cli config-entry create codex_app_server --json '{"bridge_url":"ws://127.0.0.1:4311","default_profile":"assist_readonly","default_model":"gpt-5.4"}'
+```
+
+Use `config-entry` when you want the Home Assistant config-entry lifecycle
+directly, rather than stitching together REST and websocket calls through
+`raw`.
 
 ### Registry Commands
 

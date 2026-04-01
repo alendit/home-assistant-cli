@@ -12,7 +12,7 @@ import enum
 import json
 import logging
 from typing import Any, Callable, Dict, List, Optional, cast
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 import aiohttp
 import requests
@@ -511,6 +511,109 @@ def get_config(ctx: Configuration) -> Dict[str, Any]:
         return cast(Dict[str, Any], req.json())
 
     raise HomeAssistantCliError(f"Error while getting all configuration: {req.text}")
+
+
+def get_config_entries(ctx: Configuration) -> List[Dict[str, Any]]:
+    """Return all config entries."""
+    response = wsapi(ctx, {"type": "config_entries/get"})
+    if response is None:
+        raise HomeAssistantCliError("No response returned from websocket API")
+
+    return cast(List[Dict[str, Any]], response["result"])
+
+
+def get_config_entry(ctx: Configuration, entry_id: str) -> Optional[Dict[str, Any]]:
+    """Return a single config entry by id."""
+    return next(
+        (
+            entry
+            for entry in get_config_entries(ctx)
+            if entry.get("entry_id") == entry_id
+        ),
+        None,
+    )
+
+
+def get_config_entry_diagnostics(
+    ctx: Configuration, entry_id: str
+) -> Dict[str, Any]:
+    """Return diagnostics for one config entry."""
+    path = f"/api/diagnostics/config_entry/{quote(entry_id, safe='')}"
+    try:
+        req = restapi(ctx, METH_GET, path)
+    except HomeAssistantCliError as ex:
+        raise HomeAssistantCliError(
+            f"Unexpected error getting diagnostics for config entry {entry_id}: {ex}"
+        )
+
+    if req.status_code == 200:
+        return cast(Dict[str, Any], req.json())
+
+    raise HomeAssistantCliError(
+        f"Error while getting diagnostics for config entry {entry_id}: {req.text}"
+    )
+
+
+def get_config_entry_flow_handlers(ctx: Configuration) -> List[str]:
+    """Return available config-entry flow handlers."""
+    path = "/api/config/config_entries/flow_handlers"
+    try:
+        req = restapi(ctx, METH_GET, path)
+    except HomeAssistantCliError as ex:
+        raise HomeAssistantCliError(
+            f"Unexpected error getting config entry flow handlers: {ex}"
+        )
+
+    if req.status_code == 200:
+        return cast(List[str], req.json())
+
+    raise HomeAssistantCliError(
+        f"Error while getting config entry flow handlers: {req.text}"
+    )
+
+
+def init_config_entry_flow(
+    ctx: Configuration, handler: str, show_advanced_options: bool = False
+) -> Dict[str, Any]:
+    """Start a config-entry flow."""
+    path = "/api/config/config_entries/flow"
+    data = {
+        "handler": handler,
+        "show_advanced_options": show_advanced_options,
+    }
+    try:
+        req = restapi(ctx, METH_POST, path, data)
+    except HomeAssistantCliError as ex:
+        raise HomeAssistantCliError(
+            f"Unexpected error starting config entry flow for {handler}: {ex}"
+        )
+
+    if req.status_code == 200:
+        return cast(Dict[str, Any], req.json())
+
+    raise HomeAssistantCliError(
+        f"Error while starting config entry flow for {handler}: {req.text}"
+    )
+
+
+def continue_config_entry_flow(
+    ctx: Configuration, flow_id: str, data: Optional[Dict[str, Any]] = None
+) -> Dict[str, Any]:
+    """Continue a config-entry flow."""
+    path = f"/api/config/config_entries/flow/{flow_id}"
+    try:
+        req = restapi(ctx, METH_POST, path, data or {})
+    except HomeAssistantCliError as ex:
+        raise HomeAssistantCliError(
+            f"Unexpected error continuing config entry flow {flow_id}: {ex}"
+        )
+
+    if req.status_code == 200:
+        return cast(Dict[str, Any], req.json())
+
+    raise HomeAssistantCliError(
+        f"Error while continuing config entry flow {flow_id}: {req.text}"
+    )
 
 
 def get_collection_item_config(

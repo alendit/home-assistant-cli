@@ -73,7 +73,7 @@ class HomeAssistantCli(click.Group):
         commands = []
         for filename in os.listdir(cmd_folder):
             if filename.endswith(".py") and not filename.startswith("__"):
-                commands.append(filename[:-3])
+                commands.append(filename[:-3].replace("_", "-"))
         commands.sort()
 
         return commands
@@ -82,9 +82,10 @@ class HomeAssistantCli(click.Group):
         self, ctx: Context, cmd_name: str
     ) -> Optional[Union[Group, Command]]:
         """Import the commands of the plugins."""
+        module_name = cmd_name.replace("-", "_")
         try:
             mod = __import__(
-                "{}.plugins.{}".format(const.PACKAGE_NAME, cmd_name),
+                "{}.plugins.{}".format(const.PACKAGE_NAME, module_name),
                 {},
                 {},
                 ["cli"],
