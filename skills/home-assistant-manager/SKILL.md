@@ -1,26 +1,16 @@
 ---
 name: home-assistant-manager
-description: Use when working on Home Assistant configuration, deployment, automation verification, dashboard changes, or remote Home Assistant operations with this repo or an installed hass-cli. Covers repo-local uv usage, installed hass-cli usage, approval-safe command execution with inlined env var values, reload vs restart decisions, and practical verification workflows.
+description: Use when working on Home Assistant configuration, deployment, automation verification, dashboard changes, or remote Home Assistant operations with hass-cli. Prefer direct hass-cli usage for uv tool installs, fall back to repo-local uv usage only when explicitly working from a checkout, and cover approval-safe execution, reload vs restart decisions, and practical verification workflows.
 ---
 
 # Home Assistant Manager
 
 Use this skill when changing Home Assistant config, testing automations, or
-operating a remote Home Assistant instance with this repository or an installed
-`hass-cli`.
+operating a remote Home Assistant instance with `hass-cli`.
 
 ## Command Selection
 
-If you are working inside this repository, prefer running `hass-cli` from the
-checkout:
-
-```bash
-uv run hass-cli state list
-uv run hass-cli state get sensor.entity_name
-uv run hass-cli service call automation.reload
-```
-
-If you installed `hass-cli` as a tool, use the plain command instead:
+Default to plain `hass-cli`:
 
 ```bash
 hass-cli state list
@@ -28,8 +18,18 @@ hass-cli state get sensor.entity_name
 hass-cli service call automation.reload
 ```
 
-The examples below use the repo-local `uv run hass-cli` form. If you are using
-an installed tool instead of a checkout, drop the `uv run` prefix.
+If the user installed `hass-cli` with `uv tool install`, do not prepend
+`uv run`. The installed script is already on `PATH`.
+
+Only use the repo-local form when you are explicitly working from this
+repository checkout and intentionally want the checkout version instead of the
+installed tool:
+
+```bash
+uv run hass-cli state list
+uv run hass-cli state get sensor.entity_name
+uv run hass-cli service call automation.reload
+```
 
 ## Approval-Safe Command Execution
 
@@ -44,10 +44,11 @@ When operating in those environments:
    `if printenv HASS_TOKEN >/dev/null; then echo HASS_TOKEN_SET; else echo HASS_TOKEN_UNSET; fi`
 4. Inline non-secret values such as the resolved server or SSH target only when
    approval rules require literal arguments.
-5. If `uv run` itself needs approval, prefer a persisted rule for the narrow
-   prefix `["uv", "run", "hass-cli"]` instead of broader `uv` access.
-6. If you are using a globally installed `hass-cli`, prefer approving a narrow
-   `["hass-cli"]` prefix instead of broad shell access.
+5. Prefer approving a narrow `["hass-cli"]` prefix instead of broad shell
+   access.
+6. Only if you are intentionally using the repo checkout, prefer a persisted
+   rule for the narrow prefix `["uv", "run", "hass-cli"]` instead of broader
+   `uv` access.
 
 Example:
 
@@ -55,7 +56,7 @@ Example:
 printenv HASS_SERVER
 
 # Then execute with the server literal inlined, but let hass-cli read HASS_TOKEN:
-uv run hass-cli --server http://homeassistant.local:8123 state list
+hass-cli --server http://homeassistant.local:8123 state list
 ```
 
 Same rule for SSH:
@@ -74,46 +75,46 @@ Before starting, verify:
 1. Home Assistant is reachable over REST with a long-lived token.
 2. SSH access exists for host-level `ha` commands when needed.
 3. `HASS_SERVER` and `HASS_TOKEN` are exported, or the script you call sets them.
-4. You are using either this repo's `uv` environment or an installed
-   `hass-cli`.
+4. You have either an installed `hass-cli` or an explicit reason to use this
+   repo's `uv` environment.
 
 ## Core Commands
 
 `hass-cli` examples:
 
 ```bash
-uv run hass-cli state list
-uv run hass-cli state get sensor.entity_name
-uv run hass-cli automation list
-uv run hass-cli automation show automation.name
-uv run hass-cli automation export automation.name
-uv run hass-cli automation patch automation.name --json '{"mode":"restart"}'
-uv run hass-cli script list
-uv run hass-cli script export script.name
-uv run hass-cli script patch script.name --json '{"mode":"queued"}'
-uv run hass-cli scene list
-uv run hass-cli helper list
-uv run hass-cli service list automation
-uv run hass-cli service call automation.trigger --arguments entity_id=automation.name
-uv run hass-cli config full
-uv run hass-cli info
+hass-cli state list
+hass-cli state get sensor.entity_name
+hass-cli automation list
+hass-cli automation show automation.name
+hass-cli automation export automation.name
+hass-cli automation patch automation.name --json '{"mode":"restart"}'
+hass-cli script list
+hass-cli script export script.name
+hass-cli script patch script.name --json '{"mode":"queued"}'
+hass-cli scene list
+hass-cli helper list
+hass-cli service list automation
+hass-cli service call automation.trigger --arguments entity_id=automation.name
+hass-cli config full
+hass-cli info
 ```
 
 Live automation inspection:
 
 ```bash
-uv run hass-cli -o json state list automation
-uv run hass-cli -o json entity list | rg automation
-uv run hass-cli state get automation.name
+hass-cli -o json state list automation
+hass-cli -o json entity list | rg automation
+hass-cli state get automation.name
 ```
 
 Raw API inspection:
 
 ```bash
 # `raw get config` is normalized to `/api/config`
-uv run hass-cli -o json raw get config
-uv run hass-cli -o json raw get /api/config
-uv run hass-cli -o json raw ws config/device_registry/list
+hass-cli -o json raw get config
+hass-cli -o json raw get /api/config
+hass-cli -o json raw ws config/device_registry/list
 ```
 
 Avoid `raw get /config` unless you intentionally want a non-API frontend route.
@@ -127,16 +128,16 @@ but flow creation only worked over REST.
 Use websocket for read-only inspection:
 
 ```bash
-uv run hass-cli -o json raw ws manifest/get --json '{"integration":"codex_app_server"}'
-uv run hass-cli -o json raw ws config_entries/get
+hass-cli -o json raw ws manifest/get --json '{"integration":"codex_app_server"}'
+hass-cli -o json raw ws config_entries/get
 ```
 
 Use REST for flow discovery and creation:
 
 ```bash
-uv run hass-cli -o json raw get /api/config/config_entries/flow_handlers
-uv run hass-cli -o json raw post /api/config/config_entries/flow --json '{"handler":"codex_app_server","show_advanced_options":false}'
-uv run hass-cli -o json raw post /api/config/config_entries/flow/<flow_id> --json '{"bridge_url":"ws://127.0.0.1:4311","default_profile":"assist_readonly","default_model":"gpt-5.4"}'
+hass-cli -o json raw get /api/config/config_entries/flow_handlers
+hass-cli -o json raw post /api/config/config_entries/flow --json '{"handler":"codex_app_server","show_advanced_options":false}'
+hass-cli -o json raw post /api/config/config_entries/flow/<flow_id> --json '{"bridge_url":"ws://127.0.0.1:4311","default_profile":"assist_readonly","default_model":"gpt-5.4"}'
 ```
 
 Practical rule:
@@ -153,12 +154,12 @@ Config-backed edit workflow:
 
 ```bash
 # Inspect the exact stored payload shape accepted by update:
-uv run hass-cli -o json automation export automation.name
-uv run hass-cli -o json script export script.name
+hass-cli -o json automation export automation.name
+hass-cli -o json script export script.name
 
 # For small edits, prefer an inline merge patch over stdin:
-uv run hass-cli automation patch automation.name --json '{"description":"Updated","mode":"restart"}'
-uv run hass-cli script patch script.name --json '{"mode":"queued"}'
+hass-cli automation patch automation.name --json '{"description":"Updated","mode":"restart"}'
+hass-cli script patch script.name --json '{"mode":"queued"}'
 ```
 
 Do not use `automation show` or `script show` as the template for `update`.
@@ -181,12 +182,12 @@ Prefer reload over restart whenever possible.
 
 Usually reloadable:
 
-- `uv run hass-cli service call automation.reload`
-- `uv run hass-cli service call script.reload`
-- `uv run hass-cli service call scene.reload`
-- `uv run hass-cli service call template.reload`
-- `uv run hass-cli service call group.reload`
-- `uv run hass-cli service call frontend.reload_themes`
+- `hass-cli service call automation.reload`
+- `hass-cli service call script.reload`
+- `hass-cli service call scene.reload`
+- `hass-cli service call template.reload`
+- `hass-cli service call group.reload`
+- `hass-cli service call frontend.reload_themes`
 
 Usually restart required:
 
@@ -211,16 +212,16 @@ Suggested sequence:
 
 ```bash
 ssh root@homeassistant.local "ha core check"
-uv run hass-cli service call automation.reload
-uv run hass-cli service call automation.trigger --arguments entity_id=automation.name
+hass-cli service call automation.reload
+hass-cli service call automation.trigger --arguments entity_id=automation.name
 ssh root@homeassistant.local "ha core logs | grep -i 'automation' | tail -20"
 ```
 
 For entity-state verification:
 
 ```bash
-uv run hass-cli state get switch.device_name
-uv run hass-cli state get sensor.new_sensor
+hass-cli state get switch.device_name
+hass-cli state get sensor.new_sensor
 ```
 
 ## Deployment Patterns
@@ -240,7 +241,7 @@ Rapid iteration:
 
 ```bash
 scp automations.yaml root@homeassistant.local:/config/
-uv run hass-cli service call automation.reload
+hass-cli service call automation.reload
 ```
 
 Commit only after the tested state is stable.
@@ -285,11 +286,12 @@ Look for:
 
 ## Best Practices
 
-1. Use `uv run hass-cli` from this repo by default, or plain `hass-cli` when
-   operating from an installed tool.
+1. Use plain `hass-cli` by default. Only use `uv run hass-cli` when you are
+   explicitly operating from this repo checkout.
 2. Never print the token value; let tools read `HASS_TOKEN` directly.
 3. Inline non-secret values when approval rules reject `$VAR`.
-4. Prefer approving `["uv", "run", "hass-cli"]` over broader `uv` prefixes.
+4. Prefer approving `["hass-cli"]`. Only use `["uv", "run", "hass-cli"]` when
+   you are explicitly running from the repo checkout.
 5. Start live automation discovery with `state list automation` and `entity list`
    before reaching for raw config endpoints.
 6. Prefer typed commands like `automation show`, `script show`, `scene show`,
@@ -297,8 +299,8 @@ Look for:
 7. For config-backed edits, prefer `automation export` or `script export` to
    inspect the stored payload, and `automation patch` or `script patch` for
    small inline changes.
-8. Avoid heredocs, herestrings, and temp files with `uv run hass-cli`; approval
-   rules usually will not auto-match them. Prefer inline `--json` literals.
+8. Avoid heredocs, herestrings, and temp files with `hass-cli`; approval rules
+   usually will not auto-match them. Prefer inline `--json` literals.
 9. For raw REST calls, prefer `raw get config` or `raw get /api/config`.
 10. Run `ha core check` before disruptive operations.
 11. Prefer reload over restart when possible.
