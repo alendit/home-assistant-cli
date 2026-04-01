@@ -7,7 +7,6 @@ from importlib.resources.abc import Traversable
 from pathlib import Path
 from typing import Dict, List, Optional
 
-
 DEFAULT_BUNDLED_SKILL = "home-assistant-manager"
 
 _BUNDLED_SKILLS: Dict[str, str] = {
@@ -36,7 +35,9 @@ def install_bundled_skill(
     """Install a bundled skill into the requested destination."""
     source = _skill_resource(skill_name)
     destination_root = (
-        target_dir.expanduser() if target_dir is not None else default_skills_directory()
+        target_dir.expanduser()
+        if target_dir is not None
+        else default_skills_directory()
     )
     destination = destination_root / skill_name
 
@@ -60,7 +61,9 @@ def _skill_resource(skill_name: str) -> Traversable:
 
     source = resources.files("homeassistant_cli.skills").joinpath(skill_dir)
     if not source.is_dir():
-        raise FileNotFoundError(f"Bundled skill {skill_name} is missing from the package.")
+        raise FileNotFoundError(
+            f"Bundled skill {skill_name} is missing from the package."
+        )
     return source
 
 

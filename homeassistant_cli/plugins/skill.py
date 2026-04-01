@@ -37,7 +37,10 @@ def list_skills(ctx: Configuration) -> None:
     "--target-dir",
     type=click.Path(file_okay=False, path_type=Path),
     default=None,
-    help="Install into this skills directory instead of $CODEX_HOME/skills or ~/.codex/skills.",
+    help=(
+        "Install into this skills directory instead of "
+        "$CODEX_HOME/skills or ~/.codex/skills."
+    ),
 )
 @click.option(
     "--force",

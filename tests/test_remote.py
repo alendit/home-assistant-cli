@@ -89,7 +89,9 @@ def test_get_config_entry_diagnostics() -> None:
 
     with mock.patch("homeassistant_cli.remote.restapi") as restapi:
         response = mock.Mock(status_code=200)
-        response.json.return_value = {"configured": {"bridge_url": "ws://127.0.0.1:4311"}}
+        response.json.return_value = {
+            "configured": {"bridge_url": "ws://127.0.0.1:4311"}
+        }
         restapi.return_value = response
 
         assert remote.get_config_entry_diagnostics(cfg, "entry-1") == {

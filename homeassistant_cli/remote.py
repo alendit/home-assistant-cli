@@ -534,9 +534,7 @@ def get_config_entry(ctx: Configuration, entry_id: str) -> Optional[Dict[str, An
     )
 
 
-def get_config_entry_diagnostics(
-    ctx: Configuration, entry_id: str
-) -> Dict[str, Any]:
+def get_config_entry_diagnostics(ctx: Configuration, entry_id: str) -> Dict[str, Any]:
     """Return diagnostics for one config entry."""
     path = f"/api/diagnostics/config_entry/{quote(entry_id, safe='')}"
     try:

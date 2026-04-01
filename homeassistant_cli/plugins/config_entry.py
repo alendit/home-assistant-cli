@@ -1,6 +1,6 @@
 """Config entry plugin for Home Assistant CLI (hass-cli)."""
 
-from typing import Any, Dict, List, Optional, cast
+from typing import Any, Dict, Optional, cast
 
 import click
 
@@ -40,7 +40,7 @@ def _load_payload(json: Optional[str], json_file: Optional[str]) -> Dict[str, An
     if not isinstance(payload, dict):
         raise click.UsageError("Flow payload must be a JSON object")
 
-    return cast(Dict[str, Any], payload)
+    return payload
 
 
 @click.group("config-entry")
@@ -173,7 +173,8 @@ def create(
 
     if not payload:
         raise click.UsageError(
-            "Flow requires input; provide --json/--json-file or use `config-entry continue`."
+            "Flow requires input; provide --json/--json-file "
+            "or use `config-entry continue`."
         )
 
     _render_data(
