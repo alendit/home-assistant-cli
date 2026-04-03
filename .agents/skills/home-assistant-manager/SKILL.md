@@ -83,6 +83,10 @@ uv run hass-cli script list
 uv run hass-cli script export script.name
 uv run hass-cli script patch script.name --json '{"mode":"queued"}'
 uv run hass-cli scene list
+uv run hass-cli pyscript list
+uv run hass-cli pyscript reload
+uv run hass-cli pyscript stubs
+uv run hass-cli pyscript call my_service --json '{"room":"kitchen"}'
 uv run hass-cli helper list
 uv run hass-cli service list automation
 uv run hass-cli service call automation.trigger --arguments entity_id=automation.name
@@ -149,6 +153,27 @@ uv run hass-cli -o json raw ws config/device_registry/list
 ```
 
 Avoid `raw get /config` unless you intentionally want a non-API frontend route.
+
+Pyscript workflows:
+
+```bash
+# Discover available pyscript services from the live HA registry:
+uv run hass-cli pyscript list
+
+# Reload changed pyscript files and regenerate IDE stubs:
+uv run hass-cli pyscript reload
+uv run hass-cli pyscript stubs
+
+# Call a custom pyscript service with either shorthand args or JSON:
+uv run hass-cli pyscript call linkedgo_sync_temp_offset \
+  --arguments reference_sensor=sensor.reference,target_sensor=sensor.target
+uv run hass-cli pyscript call pyscript.virtual_heating_control \
+  --json '{"climate_entity":"climate.living_room","switch_entity":"input_boolean.heating_call"}'
+```
+
+Use `pyscript list` when you need the currently exposed custom services and
+their fields; it reads the live service registry, so it reflects what the
+running Home Assistant instance exposes right now.
 
 Config-backed edit workflow:
 

@@ -115,6 +115,7 @@ uv run hass-cli info
 - `template`: render templates locally or on the server
 - `raw`: direct REST and websocket access for advanced workflows
 - `config-entry`: inspect configured integrations and drive onboarding flows
+- `pyscript`: reload pyscript files, generate stubs, and call pyscript services
 
 ### Typed Home Assistant Commands
 
@@ -190,6 +191,16 @@ hass-cli config-entry create codex_app_server --json '{"bridge_url":"ws://127.0.
 Use `config-entry` when you want the Home Assistant config-entry lifecycle
 directly, rather than stitching together REST and websocket calls through
 `raw`.
+
+#### Pyscript
+
+```bash
+hass-cli pyscript list
+hass-cli pyscript reload
+hass-cli pyscript stubs
+hass-cli pyscript call my_service --arguments entity_id=light.kitchen
+hass-cli pyscript call pyscript.my_service --json '{"room":"kitchen"}'
+```
 
 ### Registry Commands
 
