@@ -97,6 +97,9 @@ hass-cli pyscript list
 hass-cli pyscript reload
 hass-cli pyscript stubs
 hass-cli pyscript call my_service --json '{"room":"kitchen"}'
+hass-cli logs
+hass-cli logs pyscript
+hass-cli logs telegram_bot
 hass-cli helper list
 hass-cli service list automation
 hass-cli service call automation.trigger --arguments entity_id=automation.name
@@ -122,6 +125,22 @@ hass-cli -o json raw ws config/device_registry/list
 ```
 
 Avoid `raw get /config` unless you intentionally want a non-API frontend route.
+
+Logs inspection:
+
+```bash
+# Read the raw Home Assistant error log:
+hass-cli logs
+
+# Filter the error log to likely logger names for an integration:
+hass-cli logs pyscript
+hass-cli logs telegram_bot
+hass-cli logs codex_app_server
+```
+
+`logs` is record-aware rather than line-based, so matching exceptions keep their
+full traceback blocks. It is still filtering the existing error log snapshot,
+not streaming a dedicated per-integration log API.
 
 Pyscript workflows:
 

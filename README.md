@@ -202,6 +202,21 @@ hass-cli pyscript call my_service --arguments entity_id=light.kitchen
 hass-cli pyscript call pyscript.my_service --json '{"room":"kitchen"}'
 ```
 
+#### Logs
+
+```bash
+hass-cli logs
+hass-cli logs pyscript
+hass-cli logs telegram_bot
+hass-cli logs codex_app_server
+hass-cli logs telegram-bot --case-sensitive
+```
+
+`logs` reads Home Assistant's error log and can filter by integration or logger
+token while keeping full multi-line records such as tracebacks together. It is
+best-effort filtering over the existing error log, not a dedicated per-
+integration log API.
+
 ### Registry Commands
 
 - `area`: create, list, rename, and delete areas
