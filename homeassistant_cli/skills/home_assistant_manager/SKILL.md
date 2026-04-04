@@ -115,6 +115,19 @@ hass-cli -o json entity list | rg automation
 hass-cli state get automation.name
 ```
 
+Recorder history:
+
+```bash
+hass-cli history get --since 30m light.kitchen_light
+hass-cli history summary --since 7d sensor.bedroom_temperature
+hass-cli history average --since 7d sensor.bedroom_temperature
+```
+
+Prefer `history summary` or `history average` for questions like "what was the
+average bedroom temperature over the last 7 days?" Those commands avoid brittle
+manual `/api/history/period/...?...` URL construction and handle
+`unknown`/`unavailable` states when computing the time-weighted result.
+
 Raw API inspection:
 
 ```bash
@@ -125,6 +138,9 @@ hass-cli -o json raw ws config/device_registry/list
 ```
 
 Avoid `raw get /config` unless you intentionally want a non-API frontend route.
+Avoid hand-built raw history URLs with query strings unless the higher-level
+`history` commands cannot express what you need. If you do need raw history, pass
+the full path as one quoted argument so the shell does not reinterpret `?` or `&`.
 
 Logs inspection:
 

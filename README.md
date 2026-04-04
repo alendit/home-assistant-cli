@@ -80,6 +80,8 @@ Inspect runtime state:
 hass-cli state list
 hass-cli state get sun.sun
 hass-cli state history --since 30m light.kitchen_light
+hass-cli history summary --since 7d sensor.bedroom_temperature
+hass-cli history average --since 7d sensor.bedroom_temperature
 ```
 
 Call services:
@@ -110,6 +112,7 @@ uv run hass-cli info
 - `info`: basic server details
 - `config`: configuration details, loaded components, release, whitelist dirs
 - `state`: list, get, edit, delete, toggle, turn on/off, and read history
+- `history`: fetch recorder history and compute time-weighted summaries
 - `service`: list services and call a service
 - `event`: interact with the event bus
 - `template`: render templates locally or on the server
@@ -216,6 +219,20 @@ hass-cli logs telegram-bot --case-sensitive
 token while keeping full multi-line records such as tracebacks together. It is
 best-effort filtering over the existing error log, not a dedicated per-
 integration log API.
+
+#### History
+
+```bash
+hass-cli history get --since 30m light.kitchen_light
+hass-cli history summary --since 7d sensor.bedroom_temperature
+hass-cli history average --since 7d sensor.bedroom_temperature
+```
+
+Use `history summary` or `history average` for recorder questions like
+"average temperature over the last 7 days" instead of assembling raw
+`/api/history/period/...?...` URLs by hand. The summary commands compute a
+time-weighted average from recorder history and report coverage so gaps and
+`unknown`/`unavailable` periods are visible.
 
 ### Registry Commands
 

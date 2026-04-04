@@ -1,5 +1,6 @@
 """Entity plugin for Home Assistant CLI (hass-cli)."""
 
+from datetime import datetime
 import json as json_
 import logging
 import re
@@ -296,9 +297,9 @@ def history(
         "RETURN_AS_TIMEZONE_AWARE": True,
     }
 
-    start_time = dateparser.parse(since, settings=settings)
+    start_time = _parse_datetime(since, settings, dateparser)
 
-    end_time = dateparser.parse(end, settings=settings)
+    end_time = _parse_datetime(end, settings, dateparser)
     if start_time is None or end_time is None:
         raise ValueError("Could not parse the provided history date range.")
 
@@ -333,3 +334,16 @@ def history(
                 len(result), entity_count
             )
         )
+
+
+def _parse_datetime(
+    value: str, settings: Dict[str, Any], parser: Any
+) -> datetime | None:
+    """Parse either an ISO timestamp or a relative date expression."""
+    stripped = value.strip()
+    if not stripped:
+        return None
+    try:
+        return datetime.fromisoformat(stripped)
+    except ValueError:
+        return parser.parse(stripped, settings=settings)

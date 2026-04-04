@@ -30,7 +30,8 @@ def test_info_without_server_running() -> None:
     assert isinstance(result.exception, HomeAssistantCliError)
     assert (
         str(result.exception) == "Unexpected error getting configuration: "
-        "Error connecting to http://donotexist.inf/api/config"
+        "Error connecting to GET http://donotexist.inf/api/config "
+        "(ConnectionError)"
     )
 
 

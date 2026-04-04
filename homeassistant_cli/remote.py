@@ -50,11 +50,6 @@ def restapi(
     data: Optional[Any] = None,
 ) -> requests.Response:
     """Make a call to the Home Assistant REST API."""
-    if data is None:
-        data_str = None
-    else:
-        data_str = json.dumps(data, cls=JSONEncoder)
-
     if not ctx.session:
         ctx.session = requests.Session()
         ctx.session.verify = not ctx.insecure
@@ -76,20 +71,32 @@ def restapi(
 
     normalized_path = path if path.startswith("/") else f"/{path}"
     url = f"{resolve_server(ctx).rstrip('/')}{normalized_path}"
+    request_kwargs: Dict[str, Any] = {
+        "headers": headers,
+        "timeout": ctx.timeout,
+    }
+
+    if data is not None:
+        if method == METH_GET:
+            request_kwargs["params"] = data
+        else:
+            request_kwargs["data"] = json.dumps(data, cls=JSONEncoder)
 
     try:
-        if method == METH_GET:
-            return requests.get(url, params=data_str, headers=headers)
+        return ctx.session.request(method, url, **request_kwargs)
 
-        return requests.request(method, url, data=data_str, headers=headers)
-
-    except requests.exceptions.ConnectionError:
-        raise HomeAssistantCliError(f"Error connecting to {url}")
-
-    except requests.exceptions.Timeout:
-        error = f"Timeout when talking to {url}"
+    except requests.exceptions.Timeout as ex:
+        error = (
+            f"Timeout talking to {method} {url} after {ctx.timeout}s"
+            f" ({type(ex).__name__})"
+        )
         _LOGGER.exception(error)
-        raise HomeAssistantCliError(error)
+        raise HomeAssistantCliError(error) from ex
+    except requests.exceptions.RequestException as ex:
+        raise HomeAssistantCliError(
+            f"Error connecting to {method} {url}"
+            f" ({type(ex).__name__})"
+        ) from ex
 
 
 def wsapi(
@@ -451,7 +458,7 @@ def get_history(
     """Return History."""
     try:
         if start_time:
-            method = hass.URL_API_HISTORY_PERIOD.format(start_time.isoformat())
+            method = f"{hass.URL_API_HISTORY_PERIOD}/{quote(start_time.isoformat())}"
         else:
             method = hass.URL_API_HISTORY
 
