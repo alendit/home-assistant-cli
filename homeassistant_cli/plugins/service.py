@@ -82,8 +82,19 @@ def list_cmd(ctx: Configuration, servicefilter: str) -> None:
 @click.option(
     "--arguments", help="Comma separated key/value pairs to use as arguments."
 )
+@click.option(
+    "--return-response",
+    is_flag=True,
+    default=False,
+    help="Request a response payload from Home Assistant before returning.",
+)
 @pass_context
-def call(ctx: Configuration, service: str, arguments: str | None) -> None:
+def call(
+    ctx: Configuration,
+    service: str,
+    arguments: str | None,
+    return_response: bool,
+) -> None:
     """Call a service."""
     ctx.auto_output("data")
     _LOGGING.debug("service call <start>")
@@ -97,7 +108,13 @@ def call(ctx: Configuration, service: str, arguments: str | None) -> None:
 
     _LOGGING.debug("service call_service")
 
-    result = api.call_service(ctx, parts[0], parts[1], data)
+    result = api.call_service(
+        ctx,
+        parts[0],
+        parts[1],
+        data,
+        return_response=return_response,
+    )
 
     _LOGGING.debug("Formatting output")
     ctx.echo(format_output(ctx, result))

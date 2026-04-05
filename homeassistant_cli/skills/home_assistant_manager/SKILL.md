@@ -273,6 +273,13 @@ Usually reloadable:
 - `hass-cli service call group.reload`
 - `hass-cli service call frontend.reload_themes`
 
+For services that return a payload, use the response-aware flag and allow for
+a longer network timeout when the underlying service is expensive:
+
+```bash
+hass-cli --timeout 120 service call --return-response codex_app_server.codex_ai_task --arguments task_name=...,instructions=...
+```
+
 Usually restart required:
 
 - new integrations in `configuration.yaml`

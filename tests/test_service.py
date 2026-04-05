@@ -90,3 +90,30 @@ def test_service_call(default_services) -> None:
         assert result.exit_code == 0
 
         assert post.call_count == 1
+
+
+def test_service_call_return_response(default_services) -> None:
+    """Test service call can request response payloads."""
+    with requests_mock.Mocker() as mock:
+        post = mock.post(
+            "http://localhost:8123/api/services/homeassistant/restart?return_response=true",
+            json=[{"entity_id": "sensor.foo"}],
+            status_code=200,
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.cli,
+            [
+                "--output=json",
+                "service",
+                "call",
+                "--return-response",
+                "homeassistant.restart",
+            ],
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code == 0
+
+        assert post.call_count == 1

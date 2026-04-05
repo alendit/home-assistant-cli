@@ -795,13 +795,18 @@ def call_service(
     domain: str,
     service: str,
     service_data: Optional[Dict[str, Any]] = None,
+    return_response: bool = False,
 ) -> List[Dict[str, Any]]:
     """Call a service."""
+    url = hass.URL_API_SERVICES_SERVICE.format(domain, service)
+    if return_response:
+        url = f"{url}?return_response=true"
+
     try:
         req = restapi(
             ctx,
             METH_POST,
-            hass.URL_API_SERVICES_SERVICE.format(domain, service),
+            url,
             service_data,
         )
     except HomeAssistantCliError as ex:
