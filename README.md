@@ -89,6 +89,7 @@ Call services:
 ```bash
 hass-cli service list light
 hass-cli service call light.turn_on --arguments entity_id=light.kitchen,brightness=180
+hass-cli service call light.turn_on --json '{"entity_id":"light.kitchen","brightness":180}'
 ```
 
 Inspect raw API endpoints:

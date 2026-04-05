@@ -96,9 +96,14 @@ hass-cli scene list
 hass-cli helper list
 hass-cli service list automation
 hass-cli service call automation.trigger --arguments entity_id=automation.name
+hass-cli service call light.turn_on --json '{"entity_id":"light.kitchen","brightness":180}'
 hass-cli config full
 hass-cli info
 ```
+
+Use `--arguments` only for flat key/value service data. For nested payloads,
+lists, quoted strings, or values that contain commas or equals signs, prefer
+`--json` or `--json-file` so shell parsing does not corrupt the request body.
 
 Live automation inspection:
 

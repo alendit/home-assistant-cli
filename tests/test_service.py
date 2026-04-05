@@ -92,6 +92,59 @@ def test_service_call(default_services) -> None:
         assert post.call_count == 1
 
 
+def test_service_call_with_json_payload(default_services) -> None:
+    """Call should accept structured payloads as JSON."""
+    with requests_mock.Mocker() as mock:
+        post = mock.post(
+            "http://localhost:8123/api/services/light/turn_on",
+            json={"result": "ok"},
+            status_code=200,
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.cli,
+            [
+                "--output=json",
+                "service",
+                "call",
+                "light.turn_on",
+                "--json",
+                '{"entity_id":"light.kitchen","brightness":180}',
+            ],
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code == 0
+        assert post.call_count == 1
+        assert post.request_history[0].json() == {
+            "entity_id": "light.kitchen",
+            "brightness": 180,
+        }
+
+
+def test_service_call_rejects_mixed_payload_modes(default_services) -> None:
+    """Call should reject mixed shorthand and JSON payloads."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli.cli,
+        [
+            "--output=json",
+            "service",
+            "call",
+            "light.turn_on",
+            "--arguments",
+            "entity_id=light.kitchen",
+            "--json",
+            '{"brightness":180}',
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code != 0
+    assert "Specify either --arguments or --json/--json-file" in result.output
+
+
 def test_service_call_return_response(default_services) -> None:
     """Test service call can request response payloads."""
     with requests_mock.Mocker() as mock:

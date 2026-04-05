@@ -10,7 +10,7 @@ import click
 import homeassistant_cli.autocompletion as autocompletion
 from homeassistant_cli.cli import pass_context
 from homeassistant_cli.config import Configuration
-from homeassistant_cli.helper import format_output, to_attributes
+from homeassistant_cli.helper import format_output, load_json_input, to_attributes
 import homeassistant_cli.remote as api
 
 _LOGGING = logging.getLogger(__name__)
@@ -82,6 +82,8 @@ def list_cmd(ctx: Configuration, servicefilter: str) -> None:
 @click.option(
     "--arguments", help="Comma separated key/value pairs to use as arguments."
 )
+@click.option("--json")
+@click.option("--json-file", type=click.Path(exists=True, dir_okay=False))
 @click.option(
     "--return-response",
     is_flag=True,
@@ -93,6 +95,8 @@ def call(
     ctx: Configuration,
     service: str,
     arguments: str | None,
+    json: str | None,
+    json_file: str | None,
     return_response: bool,
 ) -> None:
     """Call a service."""
@@ -103,8 +107,17 @@ def call(
         _LOGGING.error("Service name not following <domain>.<service> format")
         sys.exit(1)
 
-    _LOGGING.debug("Convert arguments %s to dict", arguments)
-    data = to_attributes(arguments or "")
+    if arguments and (json or json_file):
+        raise click.UsageError("Specify either --arguments or --json/--json-file")
+
+    if json or json_file:
+        _LOGGING.debug("Load structured service payload")
+        data = load_json_input(json, json_file)
+        if not isinstance(data, dict):
+            raise click.UsageError("Service payload must be a JSON object")
+    else:
+        _LOGGING.debug("Convert arguments %s to dict", arguments)
+        data = to_attributes(arguments or "")
 
     _LOGGING.debug("service call_service")
 
