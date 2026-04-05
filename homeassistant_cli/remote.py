@@ -391,6 +391,25 @@ def get_entities(ctx: Configuration) -> List[Dict[str, Any]]:
     return cast(List[Dict[str, Any]], response["result"])
 
 
+def get_todo_items(ctx: Configuration, entity_id: str) -> List[Dict[str, Any]]:
+    """Return all items for one to-do entity."""
+    frame = {"type": "todo/item/list", "entity_id": entity_id}
+
+    response = wsapi(ctx, frame)
+    if response is None:
+        raise HomeAssistantCliError("No response returned from websocket API")
+
+    result = response.get("result")
+    if not isinstance(result, dict):
+        raise HomeAssistantCliError("Unexpected response returned from todo/item/list")
+
+    items = result.get("items")
+    if not isinstance(items, list):
+        raise HomeAssistantCliError("Unexpected items payload returned from to-do API")
+
+    return cast(List[Dict[str, Any]], items)
+
+
 def get_entity(ctx: Configuration, entity_id: str) -> Optional[Dict[str, Any]]:
     """Return entity registry details."""
     frame = {"type": hass.WS_TYPE_ENTITY_REGISTRY_GET, "entity_id": entity_id}

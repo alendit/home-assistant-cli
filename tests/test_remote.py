@@ -30,6 +30,22 @@ def test_get_entity_returns_result() -> None:
         assert remote.get_entity(cfg, "sensor.one") == entity
 
 
+def test_get_todo_items_returns_result() -> None:
+    """Test todo item listing returns the websocket result payload."""
+    cfg = Configuration()
+    items = [{"uid": "fb-1", "summary": "Wrong entity id used"}]
+
+    with mock.patch(
+        "homeassistant_cli.remote.wsapi",
+        return_value={"result": {"items": items}},
+    ) as wsapi:
+        assert remote.get_todo_items(cfg, "todo.codex_feedback") == items
+        wsapi.assert_called_once_with(
+            cfg,
+            {"type": "todo/item/list", "entity_id": "todo.codex_feedback"},
+        )
+
+
 def test_get_collection_item_config() -> None:
     """Test reading a collection config item over REST."""
     cfg = Configuration()

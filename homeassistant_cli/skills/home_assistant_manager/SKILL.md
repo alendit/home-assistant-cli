@@ -179,6 +179,30 @@ Use `pyscript list` when you need the currently exposed custom services and
 their fields; it reads the live service registry, so it reflects what the
 running Home Assistant instance exposes right now.
 
+Codex feedback workflow:
+
+```bash
+# Store one unresolved problem from a turn:
+hass-cli feedback submit "The agent edited the wrong automation" \
+  --session-key conversation:test \
+  --turn-id turn-123 \
+  --profile ha_operator \
+  --suggestion "Inspect the exact entity_id before editing." \
+  --suggestion "Show the planned diff before writing YAML."
+
+# Retrieve unresolved items, or include completed ones with --all:
+hass-cli feedback retrieve
+hass-cli feedback retrieve --all
+
+# Mark one or more items done by feedback id:
+hass-cli feedback mark-done <feedback_id>
+```
+
+`feedback submit` provisions a dedicated Home Assistant `Local To-do` list
+named `Codex Feedback` on first use, then stores each feedback entry there.
+Use this only when explicitly asked to capture problems or improvement notes
+about a `hass-cli`-driven turn.
+
 ## Config Entry Onboarding
 
 For integration setup, do not assume Home Assistant exposes config-entry flow
