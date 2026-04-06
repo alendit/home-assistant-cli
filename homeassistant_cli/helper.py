@@ -19,18 +19,44 @@ import homeassistant_cli.yaml as yaml
 _LOGGING = logging.getLogger(__name__)
 
 
-def to_attributes(entry: str) -> Dict[str, str]:
-    """Convert list of key=value pairs to dictionary."""
+def to_attributes(entry: str) -> Dict[str, Any]:
+    """Convert comma-separated key/value pairs to a dictionary.
+
+    Repeated keys and bare continuation values are collected into lists so
+    callers can pass multi-value payloads such as `entity_id=a,b`.
+    """
     if not entry:
         return {}
 
     lexer = shlex.shlex(entry, posix=True)
     lexer.whitespace_split = True
     lexer.whitespace = ","
-    attributes_dict: Dict[str, str] = {}
+    attributes_dict: Dict[str, Any] = {}
+    current_key: Optional[str] = None
     for pair in lexer:
-        key, value = pair.split("=", 1)
-        attributes_dict[key] = value
+        if "=" in pair:
+            key, value = pair.split("=", 1)
+            existing = attributes_dict.get(key)
+            if existing is None:
+                attributes_dict[key] = value
+            elif isinstance(existing, list):
+                existing.append(value)
+            else:
+                attributes_dict[key] = [existing, value]
+            current_key = key
+            continue
+
+        if not current_key:
+            raise ValueError(
+                "Arguments must be comma-separated key=value pairs."
+            )
+
+        assert current_key is not None
+        existing = attributes_dict[current_key]
+        if isinstance(existing, list):
+            existing.append(pair)
+        else:
+            attributes_dict[current_key] = [existing, pair]
     return attributes_dict
 
 

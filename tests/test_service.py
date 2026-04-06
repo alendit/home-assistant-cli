@@ -123,6 +123,36 @@ def test_service_call_with_json_payload(default_services) -> None:
         }
 
 
+def test_service_call_accepts_multi_entity_arguments(default_services) -> None:
+    """Call should preserve multi-value shorthand arguments as lists."""
+    with requests_mock.Mocker() as mock:
+        post = mock.post(
+            "http://localhost:8123/api/services/light/turn_on",
+            json={"result": "ok"},
+            status_code=200,
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.cli,
+            [
+                "--output=json",
+                "service",
+                "call",
+                "light.turn_on",
+                "--arguments",
+                "entity_id=light.kitchen,light.living_room",
+            ],
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code == 0
+        assert post.call_count == 1
+        assert post.request_history[0].json() == {
+            "entity_id": ["light.kitchen", "light.living_room"]
+        }
+
+
 def test_service_call_rejects_mixed_payload_modes(default_services) -> None:
     """Call should reject mixed shorthand and JSON payloads."""
     runner = CliRunner()
@@ -143,6 +173,26 @@ def test_service_call_rejects_mixed_payload_modes(default_services) -> None:
 
     assert result.exit_code != 0
     assert "Specify either --arguments or --json/--json-file" in result.output
+
+
+def test_service_call_rejects_malformed_arguments(default_services) -> None:
+    """Call should surface a usage error for invalid shorthand input."""
+    runner = CliRunner()
+    result = runner.invoke(
+        cli.cli,
+        [
+            "--output=json",
+            "service",
+            "call",
+            "light.turn_on",
+            "--arguments",
+            "light.kitchen",
+        ],
+        catch_exceptions=False,
+    )
+
+    assert result.exit_code != 0
+    assert "Arguments must be comma-separated key=value pairs." in result.output
 
 
 def test_service_call_return_response(default_services) -> None:

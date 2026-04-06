@@ -14,6 +14,12 @@ def test_to_attributes_multiples():
     assert data["attr1"] == "val1"
 
 
+def test_to_attributes_collects_multi_value_fields():
+    """Repeated values should be preserved as a list."""
+    data = helper.to_attributes("entity_id=light.kitchen,light.living_room")
+    assert data["entity_id"] == ["light.kitchen", "light.living_room"]
+
+
 def test_to_attributes_none():
     """Basic assertions on to_attributes."""
     data = helper.to_attributes("")

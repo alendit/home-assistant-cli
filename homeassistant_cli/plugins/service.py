@@ -117,7 +117,10 @@ def call(
             raise click.UsageError("Service payload must be a JSON object")
     else:
         _LOGGING.debug("Convert arguments %s to dict", arguments)
-        data = to_attributes(arguments or "")
+        try:
+            data = to_attributes(arguments or "")
+        except ValueError as ex:
+            raise click.UsageError(str(ex)) from ex
 
     _LOGGING.debug("service call_service")
 
