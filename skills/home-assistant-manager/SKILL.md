@@ -92,6 +92,7 @@ hass-cli automation patch automation.name --json '{"mode":"restart"}'
 hass-cli script list
 hass-cli script export script.name
 hass-cli script patch script.name --json '{"mode":"queued"}'
+hass-cli script run script.name --json '{"room":"kitchen","brightness":180}'
 hass-cli scene list
 hass-cli helper list
 hass-cli service list automation
