@@ -80,6 +80,32 @@ def test_script_export_returns_stored_payload() -> None:
             assert payload == {"alias": "Alpha", "sequence": []}
 
 
+def test_script_export_uses_direct_entity_lookup() -> None:
+    """Export should resolve exact entity ids without listing all states."""
+    with mock.patch(
+        "homeassistant_cli.remote.get_state",
+        return_value=SCRIPTS[0],
+    ) as get_state:
+        with mock.patch(
+            "homeassistant_cli.remote.get_states",
+            side_effect=AssertionError("get_states should not be used"),
+        ):
+            with mock.patch(
+                "homeassistant_cli.remote.get_collection_item_config",
+                return_value={"alias": "Alpha", "sequence": []},
+            ):
+                runner = CliRunner()
+                result = runner.invoke(
+                    cli.cli,
+                    ["--output=json", "script", "export", "script.alpha"],
+                    catch_exceptions=False,
+                )
+                assert result.exit_code == 0
+                payload = json.loads(result.output)
+                assert payload == {"alias": "Alpha", "sequence": []}
+                get_state.assert_not_called()
+
+
 def test_script_update_uses_slug() -> None:
     """Update should target the script slug endpoint."""
     with mock.patch("homeassistant_cli.remote.get_states", return_value=SCRIPTS):
@@ -177,6 +203,97 @@ def test_script_run_passes_arguments() -> None:
                 "turn_on",
                 {"foo": "bar", "entity_id": "script.alpha"},
             )
+
+
+def test_script_run_accepts_json_payload() -> None:
+    """Run should accept structured JSON payloads."""
+    with mock.patch("homeassistant_cli.remote.get_states", return_value=SCRIPTS):
+        with mock.patch(
+            "homeassistant_cli.remote.call_service",
+            return_value=[{"entity_id": "script.alpha", "state": "on"}],
+        ) as call_service:
+            runner = CliRunner()
+            result = runner.invoke(
+                cli.cli,
+                [
+                    "--output=json",
+                    "script",
+                    "run",
+                    "script.alpha",
+                    "--json",
+                    '{"foo":"bar","nested":{"scene":"evening"}}',
+                ],
+                catch_exceptions=False,
+            )
+            assert result.exit_code == 0
+            call_service.assert_called_once_with(
+                mock.ANY,
+                "script",
+                "turn_on",
+                {
+                    "foo": "bar",
+                    "nested": {"scene": "evening"},
+                    "entity_id": "script.alpha",
+                },
+            )
+
+
+def test_script_run_accepts_json_file(tmp_path) -> None:
+    """Run should accept structured JSON payloads from a file."""
+    payload = tmp_path / "script.json"
+    payload.write_text('{"foo":"bar","nested":{"scene":"evening"}}')
+
+    with mock.patch("homeassistant_cli.remote.get_states", return_value=SCRIPTS):
+        with mock.patch(
+            "homeassistant_cli.remote.call_service",
+            return_value=[{"entity_id": "script.alpha", "state": "on"}],
+        ) as call_service:
+            runner = CliRunner()
+            result = runner.invoke(
+                cli.cli,
+                [
+                    "--output=json",
+                    "script",
+                    "run",
+                    "script.alpha",
+                    "--json-file",
+                    str(payload),
+                ],
+                catch_exceptions=False,
+            )
+            assert result.exit_code == 0
+            call_service.assert_called_once_with(
+                mock.ANY,
+                "script",
+                "turn_on",
+                {
+                    "foo": "bar",
+                    "nested": {"scene": "evening"},
+                    "entity_id": "script.alpha",
+                },
+            )
+
+
+def test_script_run_rejects_mixed_payload_modes() -> None:
+    """Run should reject mixed shorthand and JSON payloads."""
+    with mock.patch("homeassistant_cli.remote.get_states", return_value=SCRIPTS):
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.cli,
+            [
+                "--output=json",
+                "script",
+                "run",
+                "script.alpha",
+                "--arguments",
+                "foo=bar",
+                "--json",
+                '{"nested":{"scene":"evening"}}',
+            ],
+            catch_exceptions=False,
+        )
+        assert result.exit_code != 0
+        assert "Specify either --arguments or --json/--json-file" in result.output
 
 
 def test_script_stop() -> None:

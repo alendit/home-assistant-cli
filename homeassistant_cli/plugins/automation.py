@@ -10,6 +10,7 @@ import click
 import homeassistant_cli.collection as collection
 from homeassistant_cli.cli import pass_context
 from homeassistant_cli.config import Configuration
+from homeassistant_cli.exceptions import HomeAssistantCliError
 from homeassistant_cli.helper import format_output, raw_format_output
 import homeassistant_cli.remote as api
 
@@ -43,6 +44,14 @@ def _automations(ctx: Configuration) -> List[Dict[str, Any]]:
 
 def _resolve(ctx: Configuration, ref: str) -> Dict[str, Any]:
     """Resolve an automation ref."""
+    if ref.startswith("automation."):
+        try:
+            item = api.get_state(ctx, ref)
+        except HomeAssistantCliError:
+            item = None
+        if item and item.get("entity_id") == ref:
+            return item
+
     try:
         item = collection.resolve_item(_automations(ctx), ref, [_automation_id])
     except ValueError as ex:
@@ -64,23 +73,53 @@ def _load_json(source: str) -> Dict[str, Any]:
     )
 
 
-def _automation_config_id(ctx: Configuration, ref: str) -> str:
+def _automation_config_id_from_item(item: Dict[str, Any]) -> str:
     """Return the automation config id."""
-    item = _resolve(ctx, ref)
     automation_id = item.get("attributes", {}).get("id")
     if not automation_id:
-        _LOGGING.error("Automation %s does not expose a config id", ref)
+        _LOGGING.error(
+            "Automation %s does not expose a config id", item.get("entity_id")
+        )
         sys.exit(1)
 
     return cast(str, automation_id)
 
 
-def _automation_config(ctx: Configuration, ref: str) -> tuple[str, Dict[str, Any]]:
+def _automation_config_id(ctx: Configuration, ref: str) -> str:
+    """Return the automation config id."""
+    if ref.startswith("automation."):
+        return _automation_config_id_from_item(_resolve(ctx, ref))
+
+    try:
+        api.get_collection_item_config(ctx, "automation", ref)
+    except HomeAssistantCliError:
+        item = _resolve(ctx, ref)
+        return _automation_config_id_from_item(item)
+
+    return ref
+
+
+def _automation_config_for_item(
+    ctx: Configuration, item: Dict[str, Any]
+) -> tuple[str, Dict[str, Any]]:
     """Return the automation config id and stored payload."""
-    automation_id = _automation_config_id(ctx, ref)
+    automation_id = _automation_config_id_from_item(item)
     return automation_id, api.get_collection_item_config(
         ctx, "automation", automation_id
     )
+
+
+def _automation_config(ctx: Configuration, ref: str) -> tuple[str, Dict[str, Any]]:
+    """Return the automation config id and stored payload."""
+    if ref.startswith("automation."):
+        return _automation_config_for_item(ctx, _resolve(ctx, ref))
+
+    try:
+        payload = api.get_collection_item_config(ctx, "automation", ref)
+    except HomeAssistantCliError:
+        return _automation_config_for_item(ctx, _resolve(ctx, ref))
+
+    return ref, payload
 
 
 def _call(ctx: Configuration, service: str, ref: str) -> None:
@@ -127,7 +166,7 @@ def show(ctx: Configuration, ref: str) -> None:
     """Show runtime state plus stored automation configuration."""
     ctx.auto_output("data")
     item = _resolve(ctx, ref)
-    _, payload = _automation_config(ctx, ref)
+    _, payload = _automation_config_for_item(ctx, item)
     payload = {
         "entity_id": item["entity_id"],
         "state": item["state"],

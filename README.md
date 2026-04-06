@@ -155,6 +155,7 @@ hass-cli script show script.goodnight
 hass-cli script export script.goodnight
 hass-cli script patch script.goodnight --json '{"mode":"queued"}'
 hass-cli script run script.goodnight --arguments room=bedroom
+hass-cli script run script.goodnight --json '{"room":"bedroom"}'
 hass-cli script stop script.goodnight
 ```
 

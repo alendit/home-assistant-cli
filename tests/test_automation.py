@@ -104,6 +104,32 @@ def test_automation_export_returns_stored_payload() -> None:
             assert payload == {"id": "auto-1", "alias": "Alpha", "mode": "single"}
 
 
+def test_automation_export_uses_direct_entity_lookup() -> None:
+    """Export should resolve exact entity ids without listing all states."""
+    with mock.patch(
+        "homeassistant_cli.remote.get_state",
+        return_value=AUTOMATIONS[0],
+    ) as get_state:
+        with mock.patch(
+            "homeassistant_cli.remote.get_states",
+            side_effect=AssertionError("get_states should not be used"),
+        ):
+            with mock.patch(
+                "homeassistant_cli.remote.get_collection_item_config",
+                return_value={"id": "auto-1", "alias": "Alpha", "mode": "single"},
+            ):
+                runner = CliRunner()
+                result = runner.invoke(
+                    cli.cli,
+                    ["--output=json", "automation", "export", "automation.alpha"],
+                    catch_exceptions=False,
+                )
+                assert result.exit_code == 0
+                payload = json.loads(result.output)
+                assert payload == {"id": "auto-1", "alias": "Alpha", "mode": "single"}
+                get_state.assert_called_once_with(mock.ANY, "automation.alpha")
+
+
 def test_automation_update_by_alias() -> None:
     """Update should resolve by alias and use the storage id."""
     with mock.patch("homeassistant_cli.remote.get_states", return_value=AUTOMATIONS):

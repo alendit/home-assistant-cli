@@ -10,8 +10,10 @@ import click
 import homeassistant_cli.collection as collection
 from homeassistant_cli.cli import pass_context
 from homeassistant_cli.config import Configuration
+from homeassistant_cli.exceptions import HomeAssistantCliError
 from homeassistant_cli.helper import (
     format_output,
+    load_json_input,
     raw_format_output,
     to_attributes,
 )
@@ -41,6 +43,14 @@ def _scripts(ctx: Configuration) -> List[Dict[str, Any]]:
 
 def _resolve(ctx: Configuration, ref: str) -> Dict[str, Any]:
     """Resolve a script ref."""
+    if ref.startswith("script."):
+        try:
+            item = api.get_state(ctx, ref)
+        except HomeAssistantCliError:
+            item = None
+        if item and item.get("entity_id") == ref:
+            return item
+
     try:
         item = collection.resolve_item(_scripts(ctx), ref)
     except ValueError as ex:
@@ -62,16 +72,61 @@ def _load_json(source: str) -> Dict[str, Any]:
     )
 
 
+def _load_service_data(
+    arguments: str | None, json_input: str | None, json_file: str | None
+) -> Dict[str, Any]:
+    """Load a script payload from shorthand arguments or structured JSON."""
+    if arguments and (json_input or json_file):
+        raise click.UsageError("Specify either --arguments or --json/--json-file")
+
+    if json_input or json_file:
+        payload = load_json_input(json_input, json_file)
+        if not isinstance(payload, dict):
+            raise click.UsageError("Script payload must be a JSON object")
+        return payload
+
+    return to_attributes(arguments or "")
+
+
 def _script_slug(ctx: Configuration, ref: str) -> str:
     """Return the script slug."""
-    item = _resolve(ctx, ref)
-    return collection.entity_slug(item["entity_id"])
+    if ref.startswith("script."):
+        return collection.entity_slug(ref)
+
+    try:
+        api.get_collection_item_config(ctx, "script", ref)
+    except HomeAssistantCliError:
+        item = _resolve(ctx, ref)
+        return collection.entity_slug(item["entity_id"])
+
+    return ref
+
+
+def _script_config_for_item(
+    ctx: Configuration, item: Dict[str, Any]
+) -> tuple[str, Dict[str, Any]]:
+    """Return the script slug and stored payload for one resolved item."""
+    slug = collection.entity_slug(item["entity_id"])
+    return slug, api.get_collection_item_config(ctx, "script", slug)
 
 
 def _script_config(ctx: Configuration, ref: str) -> tuple[str, Dict[str, Any]]:
     """Return the script slug and stored payload."""
-    slug = _script_slug(ctx, ref)
-    return slug, api.get_collection_item_config(ctx, "script", slug)
+    if ref.startswith("script."):
+        slug = collection.entity_slug(ref)
+        try:
+            payload = api.get_collection_item_config(ctx, "script", slug)
+        except HomeAssistantCliError:
+            return _script_config_for_item(ctx, _resolve(ctx, ref))
+
+        return slug, payload
+
+    try:
+        payload = api.get_collection_item_config(ctx, "script", ref)
+    except HomeAssistantCliError:
+        return _script_config_for_item(ctx, _resolve(ctx, ref))
+
+    return ref, payload
 
 
 @cli.command("list")
@@ -109,7 +164,7 @@ def show(ctx: Configuration, ref: str) -> None:
     """Show runtime state plus stored script configuration."""
     ctx.auto_output("data")
     item = _resolve(ctx, ref)
-    _, payload = _script_config(ctx, ref)
+    _, payload = _script_config_for_item(ctx, item)
     payload = {
         "entity_id": item["entity_id"],
         "state": item["state"],
@@ -212,12 +267,20 @@ def patch(ctx: Configuration, ref: str, json: str) -> None:
 @click.option(
     "--arguments", help="Comma separated key/value pairs to use as arguments."
 )
+@click.option("--json")
+@click.option("--json-file", type=click.Path(exists=True, dir_okay=False))
 @pass_context
-def run(ctx: Configuration, ref: str, arguments: str) -> None:
+def run(
+    ctx: Configuration,
+    ref: str,
+    arguments: str | None,
+    json: str | None,
+    json_file: str | None,
+) -> None:
     """Run a script."""
     ctx.auto_output("data")
     item = _resolve(ctx, ref)
-    data = to_attributes(arguments)
+    data = _load_service_data(arguments, json, json_file)
     data["entity_id"] = item["entity_id"]
     ctx.echo(format_output(ctx, api.call_service(ctx, "script", "turn_on", data)))
 
