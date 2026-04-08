@@ -47,9 +47,7 @@ def to_attributes(entry: str) -> Dict[str, Any]:
             continue
 
         if not current_key:
-            raise ValueError(
-                "Arguments must be comma-separated key=value pairs."
-            )
+            raise ValueError("Arguments must be comma-separated key=value pairs.")
 
         assert current_key is not None
         existing = attributes_dict[current_key]

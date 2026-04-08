@@ -34,7 +34,10 @@ def test_feedback_retrieve_returns_unresolved_items_by_default() -> None:
                         "summary": "Already fixed",
                         "status": "completed",
                         "description": json.dumps(
-                            {"created_at": "2026-04-05T01:00:00+00:00", "source": "agent"}
+                            {
+                                "created_at": "2026-04-05T01:00:00+00:00",
+                                "source": "agent",
+                            }
                         ),
                         "completed": "2026-04-05T02:00:00+00:00",
                     },
@@ -147,9 +150,11 @@ def test_feedback_submit_creates_local_todo_list_if_needed() -> None:
                                             return_value="2026-04-05T03:00:00+00:00"
                                         )
                                     )
-                                    mocked_datetime.now.side_effect = lambda tz=None: mock.Mock(
-                                        isoformat=mock.Mock(
-                                            return_value="2026-04-05T03:00:00+00:00"
+                                    mocked_datetime.now.side_effect = (
+                                        lambda tz=None: mock.Mock(
+                                            isoformat=mock.Mock(
+                                                return_value="2026-04-05T03:00:00+00:00"
+                                            )
                                         )
                                     )
 

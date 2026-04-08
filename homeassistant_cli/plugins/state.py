@@ -346,4 +346,5 @@ def _parse_datetime(
     try:
         return datetime.fromisoformat(stripped)
     except ValueError:
-        return parser.parse(stripped, settings=settings)
+        parsed = parser.parse(stripped, settings=settings)
+        return parsed if isinstance(parsed, datetime) else None

@@ -319,9 +319,7 @@ def retrieve(
 
     items = _load_feedback_items(ctx, target_entity_id)
     if not include_all:
-        items = [
-            item for item in items if item.get("status") != TODO_STATUS_COMPLETED
-        ]
+        items = [item for item in items if item.get("status") != TODO_STATUS_COMPLETED]
     ctx.echo(format_output(ctx, items, columns=ctx.columns if ctx.columns else COLS))
 
 

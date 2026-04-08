@@ -14,7 +14,9 @@ def test_logs_without_target_returns_full_log() -> None:
         "Traceback line 1\n"
         "2026-04-04 10:01:00 WARNING [homeassistant.components.telegram_bot] Second error\n"
     )
-    with mock.patch("homeassistant_cli.remote.get_raw_error_log", return_value=log_text):
+    with mock.patch(
+        "homeassistant_cli.remote.get_raw_error_log", return_value=log_text
+    ):
         runner = CliRunner()
         result = runner.invoke(cli.cli, ["logs"], catch_exceptions=False)
 
@@ -31,7 +33,9 @@ def test_logs_filters_by_integration_and_keeps_traceback() -> None:
         "2026-04-04 10:01:00 WARNING [homeassistant.components.telegram_bot] Second error\n"
         "More telegram detail\n"
     )
-    with mock.patch("homeassistant_cli.remote.get_raw_error_log", return_value=log_text):
+    with mock.patch(
+        "homeassistant_cli.remote.get_raw_error_log", return_value=log_text
+    ):
         runner = CliRunner()
         result = runner.invoke(cli.cli, ["logs", "pyscript"], catch_exceptions=False)
 
@@ -49,7 +53,9 @@ def test_logs_filters_by_component_alias() -> None:
         "2026-04-04 10:00:00 ERROR [custom_components.pyscript] First error\n"
         "2026-04-04 10:01:00 WARNING [homeassistant.components.telegram_bot] Second error\n"
     )
-    with mock.patch("homeassistant_cli.remote.get_raw_error_log", return_value=log_text):
+    with mock.patch(
+        "homeassistant_cli.remote.get_raw_error_log", return_value=log_text
+    ):
         runner = CliRunner()
         result = runner.invoke(
             cli.cli, ["logs", "telegram-bot"], catch_exceptions=False
@@ -65,7 +71,9 @@ def test_logs_filters_by_component_alias() -> None:
 def test_logs_case_sensitive_flag() -> None:
     """Case-sensitive filtering should not match different casing."""
     log_text = "2026-04-04 10:00:00 ERROR [custom_components.pyscript] First error\n"
-    with mock.patch("homeassistant_cli.remote.get_raw_error_log", return_value=log_text):
+    with mock.patch(
+        "homeassistant_cli.remote.get_raw_error_log", return_value=log_text
+    ):
         runner = CliRunner()
         result = runner.invoke(
             cli.cli,

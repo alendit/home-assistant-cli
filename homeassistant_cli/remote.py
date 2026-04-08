@@ -94,8 +94,7 @@ def restapi(
         raise HomeAssistantCliError(error) from ex
     except requests.exceptions.RequestException as ex:
         raise HomeAssistantCliError(
-            f"Error connecting to {method} {url}"
-            f" ({type(ex).__name__})"
+            f"Error connecting to {method} {url}" f" ({type(ex).__name__})"
         ) from ex
 
 
