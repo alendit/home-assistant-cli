@@ -1,6 +1,7 @@
 """Tests for websocket-facing helpers."""
 
 from unittest import mock
+import requests
 
 import homeassistant_cli.remote as remote
 from homeassistant_cli.config import Configuration
@@ -233,3 +234,26 @@ def test_update_collection_item_config() -> None:
             "/api/config/automation/config/auto-1",
             payload,
         )
+
+
+def test_restapi_timeout_mentions_retry_guidance() -> None:
+    """Timeout errors should point operators at the global --timeout knob."""
+    cfg = Configuration()
+    cfg.server = "http://localhost:8123"
+    cfg.timeout = 7
+
+    with mock.patch(
+        "requests.Session.request",
+        side_effect=requests.exceptions.Timeout("too slow"),
+    ):
+        with mock.patch("homeassistant_cli.remote._LOGGER.exception"):
+            try:
+                remote.restapi(cfg, remote.METH_POST, "/api/conversation/process")
+            except HomeAssistantCliError as ex:
+                message = str(ex)
+            else:
+                raise AssertionError("Expected HomeAssistantCliError")
+
+    assert "after 7s" in message
+    assert "Retry with a larger --timeout value" in message
+    assert "/api/conversation/process" in message

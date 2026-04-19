@@ -88,7 +88,9 @@ def restapi(
     except requests.exceptions.Timeout as ex:
         error = (
             f"Timeout talking to {method} {url} after {ctx.timeout}s"
-            f" ({type(ex).__name__})"
+            f" ({type(ex).__name__}). Retry with a larger --timeout value for"
+            " slow endpoints such as /api/conversation/process or"
+            " codex_app_server.codex_ai_task."
         )
         _LOGGER.exception(error)
         raise HomeAssistantCliError(error) from ex
