@@ -120,7 +120,10 @@ def call(
         try:
             data = to_attributes(arguments or "")
         except ValueError as ex:
-            raise click.UsageError(str(ex)) from ex
+            raise click.UsageError(
+                f"{ex} Example: entity_id=light.kitchen. "
+                "Use --json or --json-file for structured payloads."
+            ) from ex
 
     _LOGGING.debug("service call_service")
 

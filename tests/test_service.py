@@ -193,6 +193,8 @@ def test_service_call_rejects_malformed_arguments(default_services) -> None:
 
     assert result.exit_code != 0
     assert "Arguments must be comma-separated key=value pairs." in result.output
+    assert "Example: entity_id=light.kitchen" in result.output
+    assert "Use --json" in result.output
 
 
 def test_service_call_return_response(default_services) -> None:
