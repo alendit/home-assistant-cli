@@ -4,6 +4,7 @@ from unittest import mock
 
 import homeassistant_cli.remote as remote
 from homeassistant_cli.config import Configuration
+from homeassistant_cli.exceptions import HomeAssistantCliError
 
 
 def test_wsapi_uses_asyncio_run() -> None:
@@ -64,6 +65,49 @@ def test_get_collection_item_config() -> None:
         restapi.assert_called_once_with(
             cfg, remote.METH_GET, "/api/config/automation/config/auto-1"
         )
+
+
+def test_get_states_falls_back_to_websocket_on_transport_error() -> None:
+    """Bulk state listing should fall back to websocket when REST errors."""
+    cfg = Configuration()
+    states = [{"entity_id": "automation.alpha", "state": "on"}]
+
+    with mock.patch(
+        "homeassistant_cli.remote.restapi",
+        side_effect=HomeAssistantCliError("Timeout talking to GET /api/states"),
+    ) as restapi:
+        with mock.patch(
+            "homeassistant_cli.remote.wsapi",
+            return_value={"result": states},
+        ) as wsapi:
+            assert remote.get_states(cfg) == states
+            restapi.assert_called_once_with(
+                cfg,
+                remote.METH_GET,
+                remote.hass.URL_API_STATES,
+            )
+            wsapi.assert_called_once_with(cfg, {"type": "get_states"})
+
+
+def test_get_states_falls_back_to_websocket_on_rest_error_status() -> None:
+    """Bulk state listing should fall back to websocket on non-200 REST status."""
+    cfg = Configuration()
+    states = [{"entity_id": "script.alpha", "state": "off"}]
+
+    with mock.patch("homeassistant_cli.remote.restapi") as restapi:
+        response = mock.Mock(status_code=500, text="boom")
+        restapi.return_value = response
+        with mock.patch(
+            "homeassistant_cli.remote.wsapi",
+            return_value={"result": states},
+        ) as wsapi:
+            assert remote.get_states(cfg) == states
+            restapi.assert_called_once_with(
+                cfg,
+                remote.METH_GET,
+                remote.hass.URL_API_STATES,
+            )
+            wsapi.assert_called_once_with(cfg, {"type": "get_states"})
 
 
 def test_get_config_entries() -> None:

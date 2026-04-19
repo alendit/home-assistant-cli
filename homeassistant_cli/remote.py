@@ -502,16 +502,36 @@ def get_history(
 
 def get_states(ctx: Configuration) -> List[Dict[str, Any]]:
     """Return all states."""
+    rest_error: Optional[str] = None
     try:
         req = restapi(ctx, METH_GET, hass.URL_API_STATES)
     except HomeAssistantCliError as ex:
-        raise HomeAssistantCliError(f"Unexpected error getting state: {ex}")
+        rest_error = f"Unexpected error getting state: {ex}"
+    else:
+        if req.status_code == 200:
+            data = req.json()  # type: List[Dict[str, Any]]
+            return data
+        rest_error = f"Error while getting all states: {req.text}"
 
-    if req.status_code == 200:
-        data = req.json()  # type: List[Dict[str, Any]]
-        return data
+    try:
+        response = wsapi(ctx, {"type": "get_states"})
+    except HomeAssistantCliError as ex:
+        raise HomeAssistantCliError(
+            f"{rest_error}; websocket fallback failed: {ex}"
+        ) from ex
 
-    raise HomeAssistantCliError(f"Error while getting all states: {req.text}")
+    if response is None:
+        raise HomeAssistantCliError(
+            f"{rest_error}; websocket fallback returned no response"
+        )
+
+    result = response.get("result")
+    if not isinstance(result, list):
+        raise HomeAssistantCliError(
+            f"{rest_error}; unexpected websocket states payload"
+        )
+
+    return cast(List[Dict[str, Any]], result)
 
 
 def get_raw_error_log(ctx: Configuration) -> str:

@@ -43,6 +43,31 @@ def test_script_list_filters_domain() -> None:
         assert len(data) == 2
 
 
+def test_script_list_falls_back_when_bulk_state_rest_call_fails() -> None:
+    """List should still work when /api/states falls back to websocket."""
+    with mock.patch("homeassistant_cli.remote.restapi") as restapi:
+        response = mock.Mock(status_code=500, text="boom")
+        restapi.return_value = response
+        with mock.patch(
+            "homeassistant_cli.remote.wsapi",
+            return_value={"result": SCRIPTS},
+        ) as wsapi:
+            runner = CliRunner()
+            result = runner.invoke(
+                cli.cli,
+                ["--output=json", "script", "list"],
+                catch_exceptions=False,
+            )
+            assert result.exit_code == 0
+            data = json.loads(result.output)
+            assert [item["entity_id"] for item in data] == [
+                "script.alpha",
+                "script.beta",
+            ]
+            restapi.assert_called_once()
+            wsapi.assert_called_once_with(mock.ANY, {"type": "get_states"})
+
+
 def test_script_show_uses_slug() -> None:
     """Show should use the entity slug for config lookup."""
     with mock.patch("homeassistant_cli.remote.get_states", return_value=SCRIPTS):
