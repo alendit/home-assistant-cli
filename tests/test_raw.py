@@ -92,6 +92,61 @@ def test_raw_post_without_api_prefix() -> None:
         assert data["message"] == "success"
 
 
+def test_raw_get_encodes_literal_plus_in_query_timestamps() -> None:
+    """Raw GET should percent-encode timezone offsets in query values."""
+    with requests_mock.Mocker() as mock:
+        mock.get(
+            "http://localhost:8123/api/history/period/2026-04-19T18:00:00+00:00"
+            "?filter_entity_id=sensor.power&end_time=2026-04-19T19:00:00%2B00:00",
+            json=[],
+            status_code=200,
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.cli,
+            [
+                "--output=json",
+                "raw",
+                "get",
+                "/api/history/period/2026-04-19T18:00:00+00:00"
+                "?filter_entity_id=sensor.power&end_time=2026-04-19T19:00:00+00:00",
+            ],
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code == 0
+        assert json.loads(result.output) == []
+
+
+def test_raw_get_preserves_encoded_plus_in_query_timestamps() -> None:
+    """Raw GET should keep already-encoded timezone offsets unchanged."""
+    with requests_mock.Mocker() as mock:
+        get = mock.get(
+            "http://localhost:8123/api/history/period/2026-04-19T18:00:00+00:00"
+            "?filter_entity_id=sensor.power&end_time=2026-04-19T19:00:00%2B00:00",
+            json=[],
+            status_code=200,
+        )
+
+        runner = CliRunner()
+        result = runner.invoke(
+            cli.cli,
+            [
+                "--output=json",
+                "raw",
+                "get",
+                "/api/history/period/2026-04-19T18:00:00+00:00"
+                "?filter_entity_id=sensor.power&end_time=2026-04-19T19:00:00%2B00:00",
+            ],
+            catch_exceptions=False,
+        )
+
+        assert result.exit_code == 0
+        assert get.call_count == 1
+        assert json.loads(result.output) == []
+
+
 def test_apimethod_completion(default_services) -> None:
     """Test completion for raw API methods."""
     cfg = Configuration()

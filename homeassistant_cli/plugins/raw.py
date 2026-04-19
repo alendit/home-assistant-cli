@@ -3,6 +3,8 @@
 import json as json_
 import logging
 from typing import Optional
+from urllib.parse import urlsplit, urlunsplit
+import re
 
 import click
 import requests
@@ -14,6 +16,9 @@ from homeassistant_cli.helper import format_output, load_json_input
 import homeassistant_cli.remote as api
 
 _LOGGING = logging.getLogger(__name__)
+_TIMESTAMP_OFFSET_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?\+\d{2}:\d{2}$"
+)
 
 
 @click.group("raw")
@@ -52,15 +57,48 @@ def _normalize_api_method(method: str) -> str:
     usable for advanced cases outside the default API namespace.
     """
     if method.startswith("/api/"):
-        return method
+        return _normalize_query_timestamps(method)
 
     if method.startswith("api/"):
-        return f"/{method}"
+        return _normalize_query_timestamps(f"/{method}")
 
     if method.startswith("/"):
+        return _normalize_query_timestamps(method)
+
+    return _normalize_query_timestamps(f"/api/{method}")
+
+
+def _normalize_query_timestamps(method: str) -> str:
+    """Percent-encode literal timezone offsets inside query values.
+
+    Requests leaves raw ``+`` characters in query strings untouched, but Home
+    Assistant history endpoints expect timezone offsets such as ``+00:00`` to be
+    percent-encoded when passed as query values.
+    """
+    parts = urlsplit(method)
+    if not parts.query:
         return method
 
-    return f"/api/{method}"
+    normalized_parts = []
+    for segment in parts.query.split("&"):
+        if "=" not in segment:
+            normalized_parts.append(segment)
+            continue
+
+        key, value = segment.split("=", 1)
+        if "%" not in value and _TIMESTAMP_OFFSET_RE.match(value):
+            value = value.replace("+", "%2B")
+        normalized_parts.append(f"{key}={value}")
+
+    return urlunsplit(
+        (
+            parts.scheme,
+            parts.netloc,
+            parts.path,
+            "&".join(normalized_parts),
+            parts.fragment,
+        )
+    )
 
 
 @cli.command()
