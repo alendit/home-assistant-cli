@@ -131,7 +131,9 @@ def test_feedback_submit_creates_local_todo_list_if_needed() -> None:
                                         "status": "needs_action",
                                         "description": json.dumps(
                                             {
-                                                "created_at": "2026-04-05T03:00:00+00:00",
+                                                "created_at": (
+                                                    "2026-04-05T03:00:00+00:00"
+                                                ),
                                                 "source": "agent",
                                                 "session_key": "conversation:test",
                                             }
@@ -142,19 +144,15 @@ def test_feedback_submit_creates_local_todo_list_if_needed() -> None:
                                 with mock.patch(
                                     "homeassistant_cli.plugins.feedback.datetime"
                                 ) as mocked_datetime:
-                                    mocked_datetime.now.return_value.isoformat.return_value = (
-                                        "2026-04-05T03:00:00+00:00"
-                                    )
+                                    timestamp = "2026-04-05T03:00:00+00:00"
+                                    mocked_now = mocked_datetime.now.return_value
+                                    mocked_now.isoformat.return_value = timestamp
                                     mocked_datetime.now.return_value = mock.Mock(
-                                        isoformat=mock.Mock(
-                                            return_value="2026-04-05T03:00:00+00:00"
-                                        )
+                                        isoformat=mock.Mock(return_value=timestamp)
                                     )
                                     mocked_datetime.now.side_effect = (
                                         lambda tz=None: mock.Mock(
-                                            isoformat=mock.Mock(
-                                                return_value="2026-04-05T03:00:00+00:00"
-                                            )
+                                            isoformat=mock.Mock(return_value=timestamp)
                                         )
                                     )
 

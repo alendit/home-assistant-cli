@@ -201,7 +201,8 @@ def test_service_call_return_response(default_services) -> None:
     """Test service call can request response payloads."""
     with requests_mock.Mocker() as mock:
         post = mock.post(
-            "http://localhost:8123/api/services/homeassistant/restart?return_response=true",
+            "http://localhost:8123/api/services/homeassistant/restart"
+            "?return_response=true",
             json=[{"entity_id": "sensor.foo"}],
             status_code=200,
         )

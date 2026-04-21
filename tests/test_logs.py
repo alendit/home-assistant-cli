@@ -12,7 +12,8 @@ def test_logs_without_target_returns_full_log() -> None:
     log_text = (
         "2026-04-04 10:00:00 ERROR [custom_components.pyscript] First error\n"
         "Traceback line 1\n"
-        "2026-04-04 10:01:00 WARNING [homeassistant.components.telegram_bot] Second error\n"
+        "2026-04-04 10:01:00 WARNING "
+        "[homeassistant.components.telegram_bot] Second error\n"
     )
     with mock.patch(
         "homeassistant_cli.remote.get_raw_error_log", return_value=log_text
@@ -30,7 +31,8 @@ def test_logs_filters_by_integration_and_keeps_traceback() -> None:
         "2026-04-04 10:00:00 ERROR [custom_components.pyscript] First error\n"
         "Traceback line 1\n"
         "Traceback line 2\n"
-        "2026-04-04 10:01:00 WARNING [homeassistant.components.telegram_bot] Second error\n"
+        "2026-04-04 10:01:00 WARNING "
+        "[homeassistant.components.telegram_bot] Second error\n"
         "More telegram detail\n"
     )
     with mock.patch(
@@ -51,7 +53,8 @@ def test_logs_filters_by_component_alias() -> None:
     """Filtering should match Home Assistant component logger names."""
     log_text = (
         "2026-04-04 10:00:00 ERROR [custom_components.pyscript] First error\n"
-        "2026-04-04 10:01:00 WARNING [homeassistant.components.telegram_bot] Second error\n"
+        "2026-04-04 10:01:00 WARNING "
+        "[homeassistant.components.telegram_bot] Second error\n"
     )
     with mock.patch(
         "homeassistant_cli.remote.get_raw_error_log", return_value=log_text

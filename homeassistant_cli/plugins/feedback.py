@@ -109,7 +109,8 @@ def _ensure_feedback_entity(ctx: Configuration, list_name: str) -> str:
         entry = _feedback_entry(ctx, list_name)
         if entry is None:
             raise click.ClickException(
-                "Created the Local To-do feedback list but could not find the config entry."
+                "Created the Local To-do feedback list but could not find "
+                "the config entry."
             )
 
     entry_id = entry.get("entry_id")
