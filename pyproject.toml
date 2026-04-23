@@ -77,9 +77,6 @@ version = { attr = "homeassistant_cli.const.__version__" }
 [tool.setuptools.packages.find]
 exclude = ["tests", "tests.*"]
 
-[tool.setuptools.package-data]
-"homeassistant_cli.skills" = ["home_assistant_manager/SKILL.md"]
-
 [tool.uv]
 default-groups = ["dev"]
 

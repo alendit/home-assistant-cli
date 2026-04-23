@@ -2,15 +2,14 @@
 
 import os
 import shutil
-from importlib import resources
-from importlib.resources.abc import Traversable
+from importlib import metadata
 from pathlib import Path
 from typing import Dict, List, Optional
 
 DEFAULT_BUNDLED_SKILL = "home-assistant-manager"
 
 _BUNDLED_SKILLS: Dict[str, str] = {
-    DEFAULT_BUNDLED_SKILL: "home_assistant_manager",
+    DEFAULT_BUNDLED_SKILL: "skills/home-assistant-manager",
 }
 
 
@@ -33,7 +32,7 @@ def install_bundled_skill(
     force: bool = False,
 ) -> Path:
     """Install a bundled skill into the requested destination."""
-    source = _skill_resource(skill_name)
+    source = _skill_path(skill_name)
     destination_root = (
         target_dir.expanduser()
         if target_dir is not None
@@ -52,22 +51,45 @@ def install_bundled_skill(
     return destination
 
 
-def _skill_resource(skill_name: str) -> Traversable:
-    """Resolve a bundled skill resource tree."""
+def _skill_path(skill_name: str) -> Path:
+    """Resolve a bundled skill resource tree from the source checkout or package."""
     try:
-        skill_dir = _BUNDLED_SKILLS[skill_name]
+        skill_path = Path(_BUNDLED_SKILLS[skill_name])
     except KeyError as err:
         raise ValueError(f"Unknown bundled skill: {skill_name}") from err
 
-    source = resources.files("homeassistant_cli.skills").joinpath(skill_dir)
-    if not source.is_dir():
-        raise FileNotFoundError(
-            f"Bundled skill {skill_name} is missing from the package."
-        )
-    return source
+    source = _source_checkout_root() / skill_path
+    if source.is_dir():
+        return source
+
+    source = _installed_skill_path(skill_name, skill_path)
+    if source.is_dir():
+        return source
+
+    raise FileNotFoundError(f"Bundled skill {skill_name} is missing from the package.")
 
 
-def _copy_resource_tree(source: Traversable, destination: Path) -> None:
+def _source_checkout_root() -> Path:
+    """Return the repository root when running from a source checkout."""
+    return Path(__file__).resolve().parent.parent
+
+
+def _installed_skill_path(skill_name: str, skill_path: Path) -> Path:
+    """Return the installed package path for a packaged skill."""
+    try:
+        distribution = metadata.distribution("homeassistant-cli")
+    except metadata.PackageNotFoundError:
+        return Path()
+
+    skill_marker = skill_path / "SKILL.md"
+    for package_path in distribution.files or []:
+        if Path(package_path.as_posix()) == skill_marker:
+            return Path(package_path.locate()).parent
+
+    raise FileNotFoundError(f"Bundled skill {skill_name} is missing from the package.")
+
+
+def _copy_resource_tree(source: Path, destination: Path) -> None:
     """Copy a packaged resource directory into a filesystem destination."""
     destination.mkdir(parents=True, exist_ok=True)
 

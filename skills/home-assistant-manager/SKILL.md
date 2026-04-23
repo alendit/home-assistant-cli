@@ -1,16 +1,29 @@
 ---
 name: home-assistant-manager
-description: Use when working on Home Assistant configuration, deployment, automation verification, dashboard changes, or remote Home Assistant operations with hass-cli. Prefer direct hass-cli usage for uv tool installs, fall back to repo-local uv usage only when explicitly working from a checkout, and cover approval-safe execution, reload vs restart decisions, and practical verification workflows.
+description: |
+  Use when the user asks to operate, inspect, troubleshoot, or change Home Assistant with hass-cli: entity state, service calls, automations, scripts, scenes, helpers, Lovelace dashboards, logs, recorder history, pyscript, config entries, HASS_SERVER, HASS_TOKEN, or remote HA access. Trigger even if they say "HA", "automation", "dashboard", "logs", "history", "entity", or "service call" without naming hass-cli.
 ---
 
 # Home Assistant Manager
 
-Use this skill when changing Home Assistant config, testing automations, or
-operating a remote Home Assistant instance with `hass-cli`.
+Use this skill for Home Assistant operations with `hass-cli`: live inspection,
+configuration-backed edits, automation verification, dashboard changes, logs,
+history, pyscript, and remote maintenance.
+
+## Default Workflow
+
+1. Identify whether the request is read-only, a config edit, a service call, or
+   host maintenance.
+2. Prefer `hass-cli` typed commands before raw API calls.
+3. Inspect the live state or exported stored payload before changing anything.
+4. For mutating or disruptive work, state the intended action, validate it, then
+   execute the smallest reload/restart that applies the change.
+5. Verify the result from Home Assistant state, logs, command output, or
+   user-visible behavior.
 
 ## Command Selection
 
-Default to plain `hass-cli`:
+Default to the installed command:
 
 ```bash
 hass-cli state list
@@ -18,12 +31,8 @@ hass-cli state get sensor.entity_name
 hass-cli service call automation.reload
 ```
 
-If the user installed `hass-cli` with `uv tool install`, do not prepend
-`uv run`. The installed script is already on `PATH`.
-
 Only use the repo-local form when you are explicitly working from this
-repository checkout and intentionally want the checkout version instead of the
-installed tool:
+repository checkout and intentionally want the checkout version:
 
 ```bash
 uv run hass-cli state list
@@ -31,58 +40,42 @@ uv run hass-cli state get sensor.entity_name
 uv run hass-cli service call automation.reload
 ```
 
-## Approval-Safe Command Execution
+If `hass-cli` was installed with `uv tool install`, do not prepend `uv run`.
+The installed script is already on `PATH`.
 
-Some agent approval systems do not auto-approve commands that contain shell
-variables such as `$HASS_SERVER` or `$HA_SSH_TARGET`.
+## Secret And Approval Safety
 
-When operating in those environments:
+- Never print `HASS_TOKEN`, `HASS_PASSWORD`, or other secret values.
+- Let `hass-cli` read `HASS_TOKEN` from the environment.
+- If you must confirm a token exists, report only presence or absence.
+- Inline non-secret values such as a resolved server URL only when approval
+  rules require literal arguments.
+- Prefer narrow command approvals such as `hass-cli` or `uv run hass-cli`.
+- Avoid heredocs, herestrings, and temporary JSON files for `hass-cli`; prefer
+  inline `--json` literals or checked-in files that already exist.
 
-1. Do not run `printenv HASS_TOKEN` and do not echo the token back to the user.
-2. Let `hass-cli` or the wrapper script read `HASS_TOKEN` from the environment.
-3. If you need to confirm the token exists, only report presence:
-   `if printenv HASS_TOKEN >/dev/null; then echo HASS_TOKEN_SET; else echo HASS_TOKEN_UNSET; fi`
-4. Inline non-secret values such as the resolved server or SSH target only when
-   approval rules require literal arguments.
-5. Prefer approving a narrow `["hass-cli"]` prefix instead of broad shell
-   access.
-6. Only if you are intentionally using the repo checkout, prefer a persisted
-   rule for the narrow prefix `["uv", "run", "hass-cli"]` instead of broader
-   `uv` access.
-
-Example:
+Presence check:
 
 ```bash
-printenv HASS_SERVER
-
-# Then execute with the server literal inlined, but let hass-cli read HASS_TOKEN:
-hass-cli --server http://homeassistant.local:8123 state list
-```
-
-Same rule for SSH:
-
-```bash
-printenv HA_SSH_TARGET
-
-# Then inline the resolved target:
-ssh root@homeassistant.local "ha core check"
+if printenv HASS_TOKEN >/dev/null; then echo HASS_TOKEN_SET; else echo HASS_TOKEN_UNSET; fi
 ```
 
 ## Prerequisites
 
-Before starting, verify:
+Verify the relevant prerequisites before acting:
 
-1. Home Assistant is reachable over REST with a long-lived token.
-2. SSH access exists for host-level `ha` commands when needed.
-3. `HASS_SERVER` and `HASS_TOKEN` are exported, or the script you call sets them.
-4. You have either an installed `hass-cli` or an explicit reason to use this
-   repo's `uv` environment.
+- Home Assistant is reachable over REST with a long-lived token.
+- `HASS_SERVER` and `HASS_TOKEN` are exported, or explicit CLI options are
+  provided.
+- SSH access exists for host-level `ha` commands when those are needed.
+- The installed `hass-cli` is appropriate, or this repo checkout is the intended
+  command source.
 
 ## Core Commands
 
-`hass-cli` examples:
-
 ```bash
+hass-cli info
+hass-cli config full
 hass-cli state list
 hass-cli state get sensor.entity_name
 hass-cli automation list
@@ -98,26 +91,33 @@ hass-cli helper list
 hass-cli service list automation
 hass-cli service call automation.trigger --arguments entity_id=automation.name
 hass-cli service call light.turn_on --json '{"entity_id":"light.kitchen","brightness":180}'
-hass-cli config full
-hass-cli info
+hass-cli raw get config
 ```
 
 Use `--arguments` only for flat key/value service data. For nested payloads,
-lists, quoted strings, or values that contain commas or equals signs, prefer
-`--json` or `--json-file` so shell parsing does not corrupt the request body.
+lists, quoted strings, or values containing commas or equals signs, prefer
+`--json` or `--json-file`.
 
-Live automation inspection:
+For services that return a payload, request the response and allow enough time:
+
+```bash
+hass-cli --timeout 120 service call --return-response domain.service --json '{"key":"value"}'
+```
+
+## Read-Only Inspection
+
+Start with typed commands:
 
 ```bash
 hass-cli -o json state list automation
-hass-cli -o json entity list | rg automation
+hass-cli -o json entity list
 hass-cli state get automation.name
+hass-cli service list light
 ```
 
-Raw API inspection:
+Use raw API only when typed commands cannot express the request:
 
 ```bash
-# `raw get config` is normalized to `/api/config`
 hass-cli -o json raw get config
 hass-cli -o json raw get /api/config
 hass-cli -o json raw ws config/device_registry/list
@@ -125,64 +125,21 @@ hass-cli -o json raw ws config/device_registry/list
 
 Avoid `raw get /config` unless you intentionally want a non-API frontend route.
 
-## Config Entry Onboarding
+## Config-Backed Edits
 
-For integration setup, do not assume Home Assistant exposes config-entry flow
-creation on the websocket API. On this host, inspection worked over websocket,
-but flow creation only worked over REST.
-
-Use websocket for read-only inspection:
+Use exported stored payloads as the source for edits:
 
 ```bash
-hass-cli -o json raw ws manifest/get --json '{"integration":"codex_app_server"}'
-hass-cli -o json raw ws config_entries/get
-```
-
-Use REST for flow discovery and creation:
-
-```bash
-hass-cli -o json raw get /api/config/config_entries/flow_handlers
-hass-cli -o json raw post /api/config/config_entries/flow --json '{"handler":"codex_app_server","show_advanced_options":false}'
-hass-cli -o json raw post /api/config/config_entries/flow/<flow_id> --json '{"bridge_url":"ws://127.0.0.1:4311","default_profile":"assist_readonly","default_model":"gpt-5.4"}'
-```
-
-Practical rule:
-
-- if `raw ws config_entries/flow/init` or similar returns `unknown_command`,
-  switch to the REST endpoints above instead of guessing more websocket method
-  names
-- use `/api/config/config_entries/flow_handlers` to confirm the integration is
-  registered before starting the flow
-- use `manifest/get` plus `config_entries/get` to distinguish "integration
-  loaded on disk" from "config entry already created"
-
-Config-backed edit workflow:
-
-```bash
-# Inspect the exact stored payload shape accepted by update:
 hass-cli -o json automation export automation.name
 hass-cli -o json script export script.name
-
-# For small edits, prefer an inline merge patch over stdin:
 hass-cli automation patch automation.name --json '{"description":"Updated","mode":"restart"}'
 hass-cli script patch script.name --json '{"mode":"queued"}'
 ```
 
-Do not use `automation show` or `script show` as the template for `update`.
-Those commands include runtime fields for operator context, while `export`
-returns the update-safe stored payload.
+Do not use `automation show` or `script show` as update templates. They include
+runtime fields for operator context, while `export` returns the stored payload.
 
-Host-level Home Assistant CLI over SSH:
-
-```bash
-ssh root@homeassistant.local "ha core check"
-ssh root@homeassistant.local "ha core restart"
-ssh root@homeassistant.local "ha core logs | tail -50"
-```
-
-Replace `root@homeassistant.local` with the actual SSH target when it differs.
-
-## Reload vs Restart
+## Reload, Restart, And Verification
 
 Prefer reload over restart whenever possible.
 
@@ -200,116 +157,38 @@ Usually restart required:
 - new integrations in `configuration.yaml`
 - core configuration changes
 - platform-level sensors that are not reloadable
+- dashboard registration changes in `.storage/lovelace_dashboards`
 
-If unsure, check with `ha core check` first, then choose the least disruptive
-option that will apply the change.
-
-## Automation Verification
-
-After deploying automation changes:
-
-1. Validate configuration.
-2. Reload automations if restart is not required.
-3. Manually trigger the automation.
-4. Inspect logs.
-5. Verify the intended effect in entity state or user-visible behavior.
-
-Suggested sequence:
+Automation verification loop:
 
 ```bash
 ssh root@homeassistant.local "ha core check"
 hass-cli service call automation.reload
 hass-cli service call automation.trigger --arguments entity_id=automation.name
-ssh root@homeassistant.local "ha core logs | grep -i 'automation' | tail -20"
-```
-
-For entity-state verification:
-
-```bash
 hass-cli state get switch.device_name
-hass-cli state get sensor.new_sensor
 ```
 
-## Deployment Patterns
+Replace `root@homeassistant.local` with the actual SSH target. Use host-level
+`ha core check`, `ha core restart`, or `ha core logs` only when host access is
+actually required.
 
-Use `git` for final changes and `scp` for rapid iteration.
+## References
 
-Git-based finalization:
+Load only the file needed for the current request:
 
-```bash
-git add file.yaml
-git commit -m "Describe change"
-git push
-ssh root@homeassistant.local "cd /config && git pull"
-```
+- [Config entry onboarding](references/config-entry-onboarding.md): integration
+  manifests, config entries, and REST-vs-websocket flow creation.
+- [History, logs, and pyscript](references/history-logs-pyscript.md): recorder
+  history, time-weighted summaries, logs, pyscript, and feedback commands.
+- [Dashboard and deployment](references/dashboard-deployment.md): Lovelace
+  storage dashboards, deploy patterns, log triage, and mutation guardrails.
 
-Rapid iteration:
+## Gotchas
 
-```bash
-scp automations.yaml root@homeassistant.local:/config/
-hass-cli service call automation.reload
-```
-
-Commit only after the tested state is stable.
-
-## Dashboard Work
-
-For Lovelace storage dashboards:
-
-- changes in `.storage/` usually need deploy plus browser refresh
-- registering a brand-new dashboard also requires updating
-  `.storage/lovelace_dashboards`
-- dashboard registration changes usually require a Home Assistant restart
-
-Validate dashboard JSON before deployment:
-
-```bash
-python3 -m json.tool .storage/lovelace.my_dashboard > /dev/null
-```
-
-For rapid iteration:
-
-```bash
-scp .storage/lovelace.my_dashboard root@homeassistant.local:/config/.storage/
-```
-
-## Log Triage
-
-Useful checks:
-
-```bash
-ssh root@homeassistant.local "ha core logs | grep -i error | tail -20"
-ssh root@homeassistant.local "ha core logs | grep -i 'automation_name' | tail -20"
-```
-
-Look for:
-
-- `Initialized trigger`
-- `Running automation actions`
-- `Error executing script`
-- `Invalid data for call_service`
-- template type errors
-
-## Best Practices
-
-1. Use plain `hass-cli` by default. Only use `uv run hass-cli` when you are
-   explicitly operating from this repo checkout.
-2. Never print the token value; let tools read `HASS_TOKEN` directly.
-3. Inline non-secret values when approval rules reject `$VAR`.
-4. Prefer approving `["hass-cli"]`. Only use `["uv", "run", "hass-cli"]` when
-   you are explicitly running from the repo checkout.
-5. Start live automation discovery with `state list automation` and `entity list`
-   before reaching for raw config endpoints.
-6. Prefer typed commands like `automation show`, `script show`, `scene show`,
-   and `helper list` before dropping to `raw`.
-7. For config-backed edits, prefer `automation export` or `script export` to
-   inspect the stored payload, and `automation patch` or `script patch` for
-   small inline changes.
-8. Avoid heredocs, herestrings, and temp files with `hass-cli`; approval rules
-   usually will not auto-match them. Prefer inline `--json` literals.
-9. For raw REST calls, prefer `raw get config` or `raw get /api/config`.
-10. Run `ha core check` before disruptive operations.
-11. Prefer reload over restart when possible.
-12. Manually trigger automations after deployment.
-13. Check logs after every meaningful change.
-14. Verify the resulting state instead of assuming success.
+- `raw get config` is normalized to `/api/config`; `/config` is a frontend route.
+- Prefer `history summary` or `history average` over hand-built raw history URLs.
+- `hass-cli logs <filter>` filters existing error-log records; it is not a
+  streaming per-integration log API.
+- If `raw ws config_entries/flow/init` returns `unknown_command`, use the REST
+  config-entry flow endpoints instead of guessing websocket method names.
+- Commit Home Assistant config only after the tested state is stable.

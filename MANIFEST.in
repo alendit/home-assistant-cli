@@ -1,5 +1,6 @@
 include README.md
 include LICENSE.md
 graft homeassistant_cli
+graft skills
 graft tests
 recursive-exclude * *.py[co]
