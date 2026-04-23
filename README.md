@@ -5,7 +5,9 @@
 
 `hass-cli` is a command-line client for Home Assistant. It can inspect runtime
 state, call services, work with registry objects such as devices and areas, and
-manage stored configuration for automations and scripts.
+manage stored configuration for automations and scripts. The package also
+exports a synchronous Python client for scripting and agent use:
+`from homeassistant_cli import HassClient`.
 
 It works against local and remote Home Assistant instances and supports JSON,
 YAML, tabular output, and shell completion.
@@ -43,13 +45,21 @@ uv run hass-cli --help
 uv run hass-cli skill install --target-dir ~/.codex/skills
 ```
 
+If you want to import the Python client from a local checkout:
+
+```bash
+uv sync
+uv run python -c "from homeassistant_cli import HassClient; print(HassClient)"
+```
+
 Community packages are also available in several ecosystems, including Fedora,
 Homebrew, and Nixpkgs. Those packages may lag behind the latest release.
 
 ## Setup
 
 Create a long-lived access token in your Home Assistant profile, then point
-`hass-cli` at your instance with either flags or environment variables.
+`hass-cli` or `HassClient` at your instance with either explicit parameters or
+environment variables.
 
 ```bash
 export HASS_SERVER="https://homeassistant.local:8123"
@@ -59,10 +69,14 @@ export HASS_TOKEN="<long-lived-access-token>"
 You can also use:
 
 - `HASS_PASSWORD` for legacy API password setups
+- `HASSIO_TOKEN` as a fallback token source when `HASS_TOKEN` is unset
+- `HASS_CERT` for a client certificate
 - `--cert` for a client certificate
 - `--insecure` for self-signed TLS during local testing
 
 If your instance is reachable through discovery, `--server auto` is the default.
+`HassClient()` follows the same env/default precedence as the CLI when
+constructor arguments are omitted.
 
 ## Quick Start
 
@@ -105,6 +119,56 @@ When developing against this repository, prefer the checked-out code:
 ```bash
 uv run hass-cli info
 ```
+
+## Python Client
+
+Use `HassClient` when you want the same Home Assistant interface without shell
+wrapping. The client is synchronous and mirrors representative CLI groups while
+returning Python dict/list data instead of formatted text.
+
+Constructor options:
+
+- `server`
+- `token`
+- `password`
+- `timeout`
+- `cert`
+- `insecure`
+
+If you omit those arguments, `HassClient()` reads the same defaults as the CLI:
+`HASS_SERVER`, `HASS_TOKEN`, `HASSIO_TOKEN`, `HASS_PASSWORD`, and `HASS_CERT`.
+Explicit constructor args always win over env vars.
+
+Basic usage:
+
+```python
+from homeassistant_cli import HassClient
+
+client = HassClient()
+
+info = client.raw.get("config")
+state = client.state.get("sun.sun")
+states = client.state.list(r"light\.")
+client.service.call(
+    "light.turn_on",
+    arguments={"entity_id": "light.kitchen", "brightness": 180},
+)
+dashboard = client.dashboard.show("dashboard-electricity")
+```
+
+Current Python namespaces:
+
+- `client.state`: `get`, `list`, `delete`, `edit`, `toggle`, `turn_on`, `turn_off`
+- `client.service`: `list`, `call`
+- `client.raw`: `get`, `post`, `ws`
+- `client.dashboard`: `show`, `save`
+
+Python API notes:
+
+- return values are structured Python data, not CLI-formatted strings
+- invalid library usage raises normal Python exceptions instead of exiting
+- `state.edit(...)` is non-interactive in Python; pass structured values instead
+  of relying on the CLI editor flow
 
 ## Current Command Surface
 

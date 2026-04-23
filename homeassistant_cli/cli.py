@@ -11,6 +11,7 @@ import click_log
 
 import homeassistant_cli.autocompletion as autocompletion
 from homeassistant_cli.config import Configuration
+from homeassistant_cli.config import default_token
 import homeassistant_cli.const as const
 from homeassistant_cli.helper import debug_requests_on, to_tuples
 
@@ -96,11 +97,6 @@ class HomeAssistantCli(click.Group):
         return cast(Union[Group, Command], mod.cli)
 
 
-def _default_token() -> Optional[str]:
-    """Handle the token provided as env variable."""
-    return os.environ.get("HASS_TOKEN", os.environ.get("HASSIO_TOKEN", None))
-
-
 @click.command(cls=HomeAssistantCli, context_settings=CONTEXT_SETTINGS)
 @click_log.simple_verbosity_option(logging.getLogger(), "--loglevel", "-l")
 @click.version_option(const.__version__)
@@ -117,7 +113,7 @@ def _default_token() -> Optional[str]:
 )
 @click.option(
     "--token",
-    default=_default_token,
+    default=default_token,
     help=(
         "The Bearer token for Home Assistant instance. Can also be set with "
         "the environment variable HASS_TOKEN."

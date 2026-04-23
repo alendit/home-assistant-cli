@@ -14,6 +14,7 @@ import homeassistant_cli.const as const
 import homeassistant_cli.yaml as yaml
 
 _LOGGING = logging.getLogger(__name__)
+UNSET = object()
 
 
 class _ZeroconfListener(zeroconf.ServiceListener):
@@ -113,6 +114,44 @@ def resolve_server(ctx: Any) -> str:
             ctx.resolved_server = const.DEFAULT_SERVER
 
     return cast(str, ctx.resolved_server)
+
+
+def default_token() -> Optional[str]:
+    """Return the configured access token from the environment."""
+    return os.environ.get("HASS_TOKEN", os.environ.get("HASSIO_TOKEN"))
+
+
+def build_configuration(
+    server: Any = UNSET,
+    token: Any = UNSET,
+    password: Any = UNSET,
+    timeout: Any = UNSET,
+    cert: Any = UNSET,
+    insecure: bool = False,
+) -> "Configuration":
+    """Build a configuration using the same env/default behavior as the CLI."""
+    ctx = Configuration()
+    ctx.server = (
+        os.environ.get("HASS_SERVER", const.AUTO_SERVER)
+        if server is UNSET
+        else cast(str, server or const.AUTO_SERVER)
+    )
+    ctx.token = default_token() if token is UNSET else cast(Optional[str], token)
+    ctx.password = (
+        os.environ.get("HASS_PASSWORD")
+        if password is UNSET
+        else cast(Optional[str], password)
+    )
+    ctx.timeout = (
+        const.DEFAULT_TIMEOUT
+        if timeout is UNSET or timeout is None
+        else cast(int, timeout)
+    )
+    ctx.cert = (
+        os.environ.get("HASS_CERT") if cert is UNSET else cast(Optional[str], cert)
+    )
+    ctx.insecure = insecure
+    return ctx
 
 
 class Configuration:
