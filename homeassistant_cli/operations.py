@@ -24,9 +24,7 @@ def list_states(ctx: Configuration, entityfilter: str = ".*") -> List[Dict[str, 
         return states
 
     entity_filter_re = re.compile(entityfilter)
-    return [
-        entity for entity in states if entity_filter_re.search(entity["entity_id"])
-    ]
+    return [entity for entity in states if entity_filter_re.search(entity["entity_id"])]
 
 
 def edit_state(
